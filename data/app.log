@@ -1,0 +1,9 @@
+{"time":"2025-01-05T01:08:58.975266843+05:00","level":"WARN","msg":"Invalid HTTP method","!BADKEY":["method",""]}
+{"time":"2025-01-06T14:43:18.013102159+06:00","level":"INFO","msg":"Shutting down server...","!BADKEY":null}
+{"time":"2025-01-06T14:43:18.013422793+06:00","level":"INFO","msg":"Server gracefully shut down","!BADKEY":null}
+{"time":"2025-01-27T04:00:11.070976418+05:00","level":"INFO","msg":"Received request to start server on path","!BADKEY":"!ERROR:json: unsupported type: func(string) *mux.Route"}
+{"time":"2025-01-27T04:00:11.071206804+05:00","level":"INFO","msg":"Server is starting","!BADKEY":["address",":6002"]}
+{"time":"2025-01-27T04:00:16.073674451+05:00","level":"INFO","msg":"Server status","!BADKEY":["requests",0,"data_entries",0]}
+{"time":"2025-01-27T04:00:20.871337455+05:00","level":"INFO","msg":"Shutting down server...","!BADKEY":null}
+{"time":"2025-01-27T04:00:20.871513672+05:00","level":"INFO","msg":"Background worker shutting down...","!BADKEY":null}
+{"time":"2025-01-27T04:00:20.871539517+05:00","level":"INFO","msg":"Server gracefully shut down","!BADKEY":null}
