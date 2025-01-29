@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"Aitu-Bet/internal/api"
 	"Aitu-Bet/logging"
 	"context"
 	"database/sql"
@@ -18,7 +19,7 @@ import (
 
 const (
 	maxRetries = 5
-	retryDelay = 5 * time.Second // 5 seconds delay between retries
+	retryDelay = 5 * time.Second
 )
 
 type Server struct {
@@ -60,27 +61,25 @@ func (s *Server) Start(addr string) {
 	r := mux.NewRouter()
 	logging.Info("Setting up server routes")
 
-	// Log the server start request path
 	logging.Info("Received request to start server", "address", addr)
+	r.HandleFunc("/login", api.LoginHandler).Methods("POST")
 
-	// Define HTTP routes
+	apis := r.PathPrefix("/api").Subrouter()
+	apis.Use(api.JWTAuthMiddleware)
+	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
+
 	r.HandleFunc("/data", s.postDataHandler).Methods("POST")
 	r.HandleFunc("/data", s.getDataHandler).Methods("GET")
 	r.HandleFunc("/data/{key}", s.getDatasHandler).Methods("GET")
 	r.HandleFunc("/data/{key}", s.deleteDataHandler).Methods("DELETE")
 	r.HandleFunc("/stats", s.statsHandler).Methods("GET")
-
-	// Optionally a catch-all route
 	r.HandleFunc("/", s.getDataHandler).Methods("GET")
 
-	// Start the background worker
 	go s.startBackgroundWorker()
 
-	// Setting up the HTTP server
 	addr = ":" + addr
 	srv := &http.Server{Addr: addr, Handler: r}
 
-	// Start the server in a separate goroutine
 	go func() {
 		logging.Info("Server is starting", "address", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -88,7 +87,6 @@ func (s *Server) Start(addr string) {
 		}
 	}()
 
-	// Graceful shutdown handling
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
@@ -113,7 +111,6 @@ func (s *Server) postDataHandler(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Insert the data into the database
 	for key, value := range input {
 		_, err := s.db.Exec("INSERT INTO data (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2", key, value)
 		if err != nil {
