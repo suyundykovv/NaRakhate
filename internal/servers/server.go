@@ -29,35 +29,6 @@ type Server struct {
 }
 
 func NewServer(db *sql.DB) *Server {
-	// Database connection setup with retry logic
-	connStr := "postgresql://admin:adminpassword@postgres:5432/aitubet?sslmode=disable"
-
-	var err error
-	for i := 0; i < maxRetries; i++ {
-		db, err = sql.Open("postgres", connStr)
-		if err != nil {
-			logging.Error("Error opening DB connection", err)
-			time.Sleep(retryDelay) // Wait before retrying
-			continue
-		}
-
-		if err := db.Ping(); err != nil {
-			logging.Error("Error pinging DB", err)
-			time.Sleep(retryDelay) // Wait before retrying
-			continue
-		}
-
-		// Successfully connected to the database
-		logging.Info("Connected to the database!")
-		return &Server{
-			db:         db,
-			shutdownCh: make(chan struct{}),
-		}
-	}
-
-	// If we reached here, the retries failed, so log the error and exit
-	logging.Error("Failed to connect to the database after several attempts", err)
-	os.Exit(1) // Exit the program as the DB connection is crucial
 	return &Server{
 		db:         db,
 		shutdownCh: make(chan struct{}),
@@ -87,19 +58,29 @@ func (s *Server) shutdown() {
 
 func (s *Server) Start(addr string) {
 	r := mux.NewRouter()
-	logging.Info("Received request to start server on path", "path", r.Path)
+	logging.Info("Setting up server routes")
+
+	// Log the server start request path
+	logging.Info("Received request to start server", "address", addr)
+
+	// Define HTTP routes
 	r.HandleFunc("/data", s.postDataHandler).Methods("POST")
 	r.HandleFunc("/data", s.getDataHandler).Methods("GET")
 	r.HandleFunc("/data/{key}", s.getDatasHandler).Methods("GET")
 	r.HandleFunc("/data/{key}", s.deleteDataHandler).Methods("DELETE")
 	r.HandleFunc("/stats", s.statsHandler).Methods("GET")
 
+	// Optionally a catch-all route
+	r.HandleFunc("/", s.getDataHandler).Methods("GET")
+
+	// Start the background worker
 	go s.startBackgroundWorker()
 
+	// Setting up the HTTP server
 	addr = ":" + addr
-	srv := &http.Server{Addr: addr}
+	srv := &http.Server{Addr: addr, Handler: r}
 
-	// Start server in a goroutine
+	// Start the server in a separate goroutine
 	go func() {
 		logging.Info("Server is starting", "address", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -107,11 +88,12 @@ func (s *Server) Start(addr string) {
 		}
 	}()
 
+	// Graceful shutdown handling
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	logging.Info("Shutting down server...")
+	logging.Info("Shutting down server gracefully...")
 	s.shutdown()
 	if err := srv.Shutdown(context.Background()); err != nil {
 		logging.Error("Server shutdown failed", err)
@@ -135,14 +117,14 @@ func (s *Server) postDataHandler(w http.ResponseWriter, r *http.Request) {
 	for key, value := range input {
 		_, err := s.db.Exec("INSERT INTO data (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2", key, value)
 		if err != nil {
-			logging.Error("Failed to insert data", err)
+			logging.Error("Failed to insert data into the database", err)
 			http.Error(w, "Failed to insert data", http.StatusInternalServerError)
 			return
 		}
 	}
 	s.requests++
 
-	logging.Info("Received new data", "data", input)
+	logging.Info("New data received and stored", "data", input)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -152,7 +134,7 @@ func (s *Server) getDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := s.db.Query("SELECT key, value FROM data")
 	if err != nil {
-		logging.Error("Failed to retrieve data", err)
+		logging.Error("Failed to retrieve data from database", err)
 		http.Error(w, "Failed to retrieve data", http.StatusInternalServerError)
 		return
 	}
@@ -162,7 +144,7 @@ func (s *Server) getDataHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var key, value string
 		if err := rows.Scan(&key, &value); err != nil {
-			logging.Error("Failed to scan data row", err)
+			logging.Error("Failed to scan row", err)
 			http.Error(w, "Failed to retrieve data", http.StatusInternalServerError)
 			return
 		}
@@ -170,7 +152,7 @@ func (s *Server) getDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		logging.Error("Failed to encode data", err)
+		logging.Error("Failed to encode data into JSON", err)
 		http.Error(w, "Failed to retrieve data", http.StatusInternalServerError)
 		return
 	}
@@ -200,7 +182,7 @@ func (s *Server) getDatasHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]string{key: value}); err != nil {
-		logging.Error("Failed to encode specific data", err)
+		logging.Error("Failed to encode data for specific key", err)
 		http.Error(w, "Failed to retrieve data", http.StatusInternalServerError)
 		return
 	}
@@ -215,14 +197,14 @@ func (s *Server) deleteDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := s.db.Exec("DELETE FROM data WHERE key = $1", key)
 	if err != nil {
-		logging.Error("Failed to delete data", err)
+		logging.Error("Failed to delete data from database", err)
 		http.Error(w, "Failed to delete data", http.StatusInternalServerError)
 		return
 	}
 
 	s.requests++
 
-	logging.Info("Data successfully deleted", "key", key)
+	logging.Info("Data deleted successfully", "key", key)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -234,7 +216,7 @@ func (s *Server) statsHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := s.db.QueryRow("SELECT COUNT(*) FROM data").Scan(&totalDataEntries)
 	if err != nil {
-		logging.Error("Failed to get data count", err)
+		logging.Error("Failed to retrieve total data count", err)
 		http.Error(w, "Failed to retrieve stats", http.StatusInternalServerError)
 		return
 	}
@@ -245,7 +227,7 @@ func (s *Server) statsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(stats); err != nil {
-		logging.Error("Failed to encode stats", err)
+		logging.Error("Failed to encode stats into JSON", err)
 		http.Error(w, "Failed to retrieve stats", http.StatusInternalServerError)
 		return
 	}

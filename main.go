@@ -16,7 +16,7 @@ import (
 func main() {
 	flags.Setup()
 
-	log.Println("Attempting to connect to the database...")
+	log.Println("Attempting to connect to the database... first")
 
 	if err := logging.InitLogger(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing logger: %v\n", err)
@@ -43,5 +43,6 @@ func main() {
 
 	// Pass the DB connection to the server
 	server := servers.NewServer(dbConn)
+	log.Println("Start the server")
 	server.Start(config.Port)
 }
