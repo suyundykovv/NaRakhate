@@ -2,7 +2,9 @@ package servers
 
 import (
 	"Aitu-Bet/internal/api"
+	"Aitu-Bet/internal/models"
 	"Aitu-Bet/logging"
+	"Aitu-Bet/utils"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Server struct {
@@ -63,6 +66,10 @@ func (s *Server) Start(addr string) {
 	apis.Use(api.JWTAuthMiddleware)
 	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
+	r.HandleFunc("/sign-up", s.SignupHandler).Methods("POST")
+	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")
+	r.HandleFunc("/getUser", s.getAllUsersHandler).Methods("GET")
+
 	r.HandleFunc("/data", s.postDataHandler).Methods("POST")
 	r.HandleFunc("/data", s.getDataHandler).Methods("GET")
 	r.HandleFunc("/data/{key}", s.getDatasHandler).Methods("GET")
@@ -93,6 +100,144 @@ func (s *Server) Start(addr string) {
 	} else {
 		logging.Info("Server gracefully shut down")
 	}
+}
+func (s *Server) getAllUsersHandler(w http.ResponseWriter, r *http.Request) {
+	// Fetch all users from the database
+	users, err := s.GetAllUsers()
+	if err != nil {
+		logging.Error("Failed to retrieve users", err)
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the list of users as a JSON response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(users); err != nil {
+		logging.Error("Failed to encode users into JSON", err)
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	logging.Info("Users successfully retrieved")
+}
+func (s *Server) GetAllUsers() ([]models.User, error) {
+	var users []models.User
+
+	rows, err := s.db.Query("SELECT id, username, email, role FROM users")
+	if err != nil {
+		logging.Error("Failed to query users from database", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role); err != nil {
+			logging.Error("Failed to scan row into user struct", err)
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		logging.Error("Error iterating over rows", err)
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (s *Server) SignupHandler(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Role     string `json:"role"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		logging.Error("Failed to hash password", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	var user models.User
+	err = s.db.QueryRow("INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role",
+		request.Username, request.Email, hashedPassword, request.Role).Scan(&user.ID, &user.Username, &user.Email, &user.Role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Error inserting new user", http.StatusInternalServerError)
+			return
+		}
+		logging.Error("Failed to insert user into database", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(user)
+}
+
+func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	var user models.User
+	err := s.db.QueryRow("SELECT id, username, email, password, role FROM users WHERE email = $1", request.Email).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+		logging.Error("Failed to retrieve user from database", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password)); err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := utils.GenerateJWT(user.ID, user.Email)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
+}
+
+func JWTAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := strings.TrimSpace(strings.Replace(authHeader, "Bearer", "", 1))
+
+		_, err := utils.ValidateJWT(tokenString)
+		if err != nil {
+			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 func (s *Server) postDataHandler(w http.ResponseWriter, r *http.Request) {
 	var input map[string]string
