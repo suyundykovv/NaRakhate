@@ -1,3 +1,0 @@
-{"time":"2025-01-05T01:08:58.975266843+05:00","level":"WARN","msg":"Invalid HTTP method","!BADKEY":["method",""]}
-{"time":"2025-01-06T14:43:18.013102159+06:00","level":"INFO","msg":"Shutting down server...","!BADKEY":null}
-{"time":"2025-01-06T14:43:18.013422793+06:00","level":"INFO","msg":"Server gracefully shut down","!BADKEY":null}

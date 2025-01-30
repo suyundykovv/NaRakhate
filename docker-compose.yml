@@ -8,14 +8,13 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: adminpassword
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-  
-  app:
-    build: .
-    depends_on:
-      - postgres
+
+  backend:
+    build:
+      context: ../backend
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_DB: aitubet
@@ -23,4 +22,26 @@ services:
       POSTGRES_PASSWORD: adminpassword
     ports:
       - "8080:8080"
-    command: ["./main"]
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ../frontend
+    dockerfile: Dockerfile
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../frontend/build:/usr/share/nginx/html
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
