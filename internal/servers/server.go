@@ -17,11 +17,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	maxRetries = 5
-	retryDelay = 5 * time.Second
-)
-
 type Server struct {
 	mu         sync.Mutex
 	db         *sql.DB
