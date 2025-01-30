@@ -48,7 +48,7 @@ func isPortAvailable(port string) bool {
 func Setup() {
 	defer utils.CatchCriticalPoint()
 
-	defaultPort := "6002"
+	defaultPort := "8080"
 	defaultStorageDir := "./"
 	help := flag.Bool("help", false, "Display help information")
 

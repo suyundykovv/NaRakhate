@@ -1,9 +1,7 @@
 package models
 
-type Event struct {
+type Category struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	StartTime   string `json:"start_time"`
-	Category    string `json:"category"`
 }
