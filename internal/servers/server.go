@@ -40,6 +40,19 @@ func (s *Server) Start(addr string) {
 	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")
 	r.HandleFunc("/getUser", s.getAllUsersHandler).Methods("GET")
 	r.HandleFunc("/deleteUser/{key}", s.deleteUserHandler).Methods("DELETE")
+	r.HandleFunc("/updateUser", s.updateUserHandler).Methods("PUT")
+
+	r.HandleFunc("/createBet", s.CreateBetHandler).Methods("POST")
+	r.HandleFunc("/getBets", s.GetAllBetsHandler).Methods("GET")
+	r.HandleFunc("/getBet/{id}", s.GetBetByIDHandler).Methods("GET")
+	r.HandleFunc("/updateBet", s.UpdateBetHandler).Methods("PUT")
+	r.HandleFunc("/deleteBet/{id}", s.DeleteBetHandler).Methods("DELETE")
+
+	r.HandleFunc("/createEvent", s.CreateEventHandler).Methods("POST")
+	r.HandleFunc("/getEvents", s.GetAllEventsHandler).Methods("GET")
+	r.HandleFunc("/getEvent/{id}", s.GetEventByIDHandler).Methods("GET")
+	r.HandleFunc("/updateEvent", s.UpdateEventHandler).Methods("PUT")
+	r.HandleFunc("/deleteEvent/{id}", s.DeleteEventHandler).Methods("DELETE")
 
 	go s.startBackgroundWorker()
 

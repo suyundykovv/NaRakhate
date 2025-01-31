@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *Server) SignupHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +31,36 @@ func (s *Server) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
 }
+func (s *Server) updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Role     string `json:"role"`
+	}
 
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+		return
+	}
+
+	query := "UPDATE users SET username=$1, email=$2, password=$3, role=$4 WHERE id=$5"
+	_, err = s.db.Exec(query, request.Username, request.Email, hashedPassword, request.Role, request.ID)
+	if err != nil {
+		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "User updated successfully"})
+}
 func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		Email    string `json:"email"`
