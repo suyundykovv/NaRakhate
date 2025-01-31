@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -69,11 +70,11 @@ func (s *Server) Start(addr string) {
 	r.HandleFunc("/sign-up", s.SignupHandler).Methods("POST")
 	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")
 	r.HandleFunc("/getUser", s.getAllUsersHandler).Methods("GET")
+	r.HandleFunc("/deleteUser/{key}", s.deleteUserHandler).Methods("DELETE")
 
 	r.HandleFunc("/data", s.postDataHandler).Methods("POST")
 	r.HandleFunc("/data", s.getDataHandler).Methods("GET")
 	r.HandleFunc("/data/{key}", s.getDatasHandler).Methods("GET")
-	r.HandleFunc("/data/{key}", s.deleteDataHandler).Methods("DELETE")
 	r.HandleFunc("/stats", s.statsHandler).Methods("GET")
 	r.HandleFunc("/", s.getDataHandler).Methods("GET")
 
@@ -102,7 +103,6 @@ func (s *Server) Start(addr string) {
 	}
 }
 func (s *Server) getAllUsersHandler(w http.ResponseWriter, r *http.Request) {
-	// Fetch all users from the database
 	users, err := s.GetAllUsers()
 	if err != nil {
 		logging.Error("Failed to retrieve users", err)
@@ -119,6 +119,32 @@ func (s *Server) getAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logging.Info("Users successfully retrieved")
+}
+func (s *Server) deleteUserData(key string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	log.Println("this is key", key)
+	_, err := s.db.Exec("DELETE FROM users WHERE key = $1", key)
+	if err != nil {
+		logging.Error("Failed to delete user from database", err, key)
+		return err
+	}
+
+	s.requests++
+
+	logging.Info("Data deleted successfully", "key", key)
+	return err
+}
+func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	key := strings.TrimPrefix(r.URL.Path, "/deleteUser/")
+	err := s.deleteUserData(key)
+	if err != nil {
+		logging.Error("Failed to delete users", err)
+		http.Error(w, "Failed to delete users", http.StatusInternalServerError)
+		return
+	}
+
+	logging.Info("Users successfully deleted")
 }
 func (s *Server) GetAllUsers() ([]models.User, error) {
 	var users []models.User

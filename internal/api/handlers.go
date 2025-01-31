@@ -43,3 +43,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Welcome to my house body!"))
 }
+
+// {
+//     "email":"test@example.com",
+//     "password":"password123"
+// }
