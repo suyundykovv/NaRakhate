@@ -35,7 +35,8 @@ CREATE TABLE categories (
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@example.com', 'hashedpassword1', 'admin'),
 ('user1', 'user1@example.com', 'hashedpassword2', 'user'),
-('user2', 'user2@example.com', 'hashedpassword3', 'user');
+('user2', 'user2@example.com', 'hashedpassword3', 'user'),
+('Aday','adaydhx@gmail.com','Aday2004','user');
 
 INSERT INTO categories (name, description) VALUES
 ('Sports', 'Sports events like football or basketball'),
