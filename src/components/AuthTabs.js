@@ -1,65 +1,81 @@
-import React, { useState } from 'react';
-import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
+import { useState } from "react"
+import LoginForm from "./LoginForm"
+import RegisterForm from "./RegisterForm"
 
 const AuthTabs = () => {
-  const [activeTab, setActiveTab] = useState('login'); // Состояние для активной вкладки
+  const [activeTab, setActiveTab] = useState("login")
 
   return (
     <div style={styles.container}>
       {/* Вкладки */}
       <div style={styles.tabs}>
-        <button
-          style={activeTab === 'login' ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab('login')}
-        >
+        <button style={activeTab === "login" ? styles.activeTab : styles.tab} onClick={() => setActiveTab("login")}>
           Вход
         </button>
         <button
-          style={activeTab === 'register' ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab('register')}
+          style={activeTab === "register" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("register")}
         >
           Регистрация
         </button>
       </div>
 
       {/* Форма входа */}
-      {activeTab === 'login' && <LoginForm />}
+      {activeTab === "login" && <LoginForm />}
 
       {/* Форма регистрации */}
-      {activeTab === 'register' && <RegisterForm />}
+      {activeTab === "register" && <RegisterForm />}
     </div>
-  );
-};
+  )
+}
 
 const styles = {
   container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    backgroundColor: '#f0f0f0',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "100vh",
+    backgroundColor: "#B4E4E4",
+    padding: "20px",
   },
   tabs: {
-    display: 'flex',
-    marginBottom: '20px',
+    display: "flex",
+    gap: "32px",
+    marginBottom: "20px",
+    backgroundColor: "white",
+    padding: "20px 32px 0",
+    borderTopLeftRadius: "16px",
+    borderTopRightRadius: "16px",
   },
   tab: {
-    padding: '10px 20px',
-    border: 'none',
-    backgroundColor: '#ddd',
-    cursor: 'pointer',
-    fontSize: '16px',
+    padding: "8px 0",
+    border: "none",
+    background: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    color: "#666",
+    position: "relative",
   },
   activeTab: {
-    padding: '10px 20px',
-    border: 'none',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: '16px',
+    padding: "8px 0",
+    border: "none",
+    background: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    color: "#000",
+    position: "relative",
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      bottom: "-2px",
+      left: 0,
+      right: 0,
+      height: "2px",
+      backgroundColor: "#FF4B55",
+    },
   },
-};
+}
 
-export default AuthTabs;
+export default AuthTabs
+

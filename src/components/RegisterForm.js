@@ -1,112 +1,153 @@
-import React, { useState } from 'react';
+import { useState } from "react"
+import axios from "axios"  // Импортируем axios для отправки запросов
 
-const RegisterForm = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const LoginForm = () => {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")  // Для отображения ошибки
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Login:', username);
-    console.log('Email:', email);
-    console.log('Password:', password);
-    console.log('Repeat Password:', confirmPassword);
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    console.log("Login:", username)
+    console.log("Password:", password)
+
+    try {
+      // Отправляем POST запрос на сервер
+      const response = await axios.post("http://localhost:8080/login", {
+        username,
+        password
+      })
+
+      // Сохраняем JWT токен в localStorage
+      localStorage.setItem("token", response.data.token)
+
+      // Перенаправляем или выводим успешное сообщение
+      console.log("Login successful!", response.data.token)
+    } catch (error) {
+      setError("Invalid username or password")  // Показать ошибку, если она есть
+      console.error("Login failed", error)
+    }
+  }
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Registration</h2>
+    <div style={styles.formContainer}>
       <form onSubmit={handleSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label htmlFor="username" style={styles.label}>Username</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={styles.input}
-          />
+          <div style={styles.inputWrapper}>
+            <i className="user-icon" style={styles.icon}>
+              👤
+            </i>
+            <input
+              type="text"
+              id="username"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={styles.input}
+            />
+          </div>
         </div>
         <div style={styles.formGroup}>
-          <label htmlFor="email" style={styles.label}>Email</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-          />
+          <div style={styles.inputWrapper}>
+            <i className="lock-icon" style={styles.icon}>
+              🔒
+            </i>
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={styles.input}
+            />
+          </div>
         </div>
-        <div style={styles.formGroup}>
-          <label htmlFor="password" style={styles.label}>Password</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-        <div style={styles.formGroup}>
-          <label htmlFor="confirmPassword" style={styles.label}>Confirm Password</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-        <button type="submit" style={styles.button}>Register</button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}  {/* Показываем ошибку */}
+        <button type="submit" style={styles.button}>
+          Login
+        </button>
+        {/* Остальная часть формы */}
       </form>
     </div>
-  );
-};
+  )
+}
 
 const styles = {
-
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    backgroundColor: '#f0f0f0',
-  },
-  title: {
-    fontSize: '24px',
-    marginBottom: '20px',
+  formContainer: {
+    width: "100%",
+    maxWidth: "400px",
+    backgroundColor: "#fff",
+    borderRadius: "16px",
+    padding: "32px",
   },
   form: {
-    width: '300px',
-    padding: '20px',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
   },
   formGroup: {
-    marginBottom: '15px',
+    marginBottom: "15px",
   },
-  label: {
-    display: 'block',
-    marginBottom: '5px',
+  inputWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+  icon: {
+    position: "absolute",
+    left: "12px",
+    color: "#666",
   },
   input: {
-    width: '100%',
-    padding: '8px',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
+    width: "100%",
+    padding: "12px 12px 12px 40px",
+    borderRadius: "8px",
+    border: "1px solid #ddd",
+    fontSize: "16px",
+    backgroundColor: "#f8f8f8",
   },
   button: {
-    width: '100%',
-    padding: '10px',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
+    width: "100%",
+    padding: "12px",
+    backgroundColor: "#FF4B55",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "16px",
+    fontWeight: "500",
   },
-};
+   orLogin: {
+      textAlign: "center",
+      color: "#666",
+      fontSize: "14px",
+    },
+    socialButtons: {
+      display: "flex",
+      justifyContent: "center",
+      gap: "16px",
+    },
+    socialButton: {
+      width: "40px",
+      height: "40px",
+      borderRadius: "8px",
+      border: "1px solid #ddd",
+      backgroundColor: "white",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    register: {
+      textAlign: "center",
+      fontSize: "14px",
+      color: "#666",
+    },
+    registerLink: {
+      color: "#FF4B55",
+      textDecoration: "none",
+    }
 
-export default RegisterForm;
+}
+
+export default LoginForm
