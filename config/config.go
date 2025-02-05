@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 var (
 	Port           string
@@ -9,6 +12,14 @@ var (
 	LogFile        string
 	RestrictedDirs = []string{"flags", "handlers", "models", "servers", "storage", "utils", "../"}
 )
+
+func init() {
+	// Загружаем порт из переменной окружения, если не установлен — используем 8080
+	Port = os.Getenv("PORT")
+	if Port == "" {
+		Port = "8080"
+	}
+}
 
 func PrintUsage() {
 	fmt.Println("Data Management System")

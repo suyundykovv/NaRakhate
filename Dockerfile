@@ -1,29 +1,30 @@
-# Use golang image as a build stage
+# Используем официальный образ Golang для сборки
 FROM golang:1.22 as builder
 
 WORKDIR /app
 
-# Set up environment variables for Go build
-ENV POSTGRES_DB=aitubet
-ENV POSTGRES_USER=admin
-ENV POSTGRES_PASSWORD=adminpassword
-
-# Copy the Go app source code and SQL initialization file
+# Копируем файлы проекта
 COPY . .
 
-# Build the Go application
-RUN go build -o main .
+# Загружаем зависимости
+RUN go mod tidy
 
-# Use a smaller, production-ready image to run the app
-FROM debian:bookworm-slim
+# Собираем бинарный файл
+RUN go build -o main main.go
+
+# Используем минимальный образ для запуска
+FROM alpine:latest
 
 WORKDIR /app
 
-# Copy the built Go binary from the previous stage
+# Устанавливаем зависимости (например, для работы с PostgreSQL)
+RUN apk add --no-cache ca-certificates libc6-compat
+
+# Копируем скомпилированный бинарник
 COPY --from=builder /app/main .
 
-# Expose port for the app
+# Открываем порт
 EXPOSE 8080
 
-# Start the application
+# Запускаем приложение
 CMD ["./main"]

@@ -32,6 +32,19 @@ CREATE TABLE categories (
     description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS leaderboard (
+                                           id SERIAL PRIMARY KEY,
+                                           user_id INT NOT NULL,
+                                           total_win FLOAT NOT NULL,
+                                           updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Пример данных
+INSERT INTO leaderboard (user_id, total_win) VALUES (1, 1000.50);
+INSERT INTO leaderboard (user_id, total_win) VALUES (2, 1500.75);
+INSERT INTO leaderboard (user_id, total_win) VALUES (3, 2000.00);
+
+
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@example.com', 'hashedpassword1', 'admin'),
 ('user1', 'user1@example.com', 'hashedpassword2', 'user'),
