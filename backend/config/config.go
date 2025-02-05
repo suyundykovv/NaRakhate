@@ -10,6 +10,12 @@ var (
 	RestrictedDirs = []string{"flags", "handlers", "models", "servers", "storage", "utils", "../"}
 )
 
+const (
+	ApiBaseURL = "https://v3.football.api-sports.io/fixtures"
+	// Your API key for the API Sports service
+	ApiKey = "d49d118abcb0002fa4bc1ff7bdeaa8c7"
+)
+
 func PrintUsage() {
 	fmt.Println("Data Management System")
 	fmt.Println()

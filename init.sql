@@ -11,8 +11,28 @@ CREATE TABLE events (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     start_time TIMESTAMP NOT NULL,
-    category VARCHAR(50)
+    category VARCHAR(50),
+    referee VARCHAR(100),
+    -- Venue details
+    venue_name VARCHAR(100),
+    venue_city VARCHAR(100),
+    -- Teams details
+    home_team_name VARCHAR(100),
+    home_team_logo VARCHAR(255),
+    away_team_name VARCHAR(100),
+    away_team_logo VARCHAR(255),
+    -- Match result
+    home_goals INT DEFAULT 0,
+    away_goals INT DEFAULT 0,
+    -- Match status
+    match_status VARCHAR(50),
+    -- Periods and score details (if available)
+    halftime_home_goals INT DEFAULT 0,
+    halftime_away_goals INT DEFAULT 0,
+    fulltime_home_goals INT DEFAULT 0,
+    fulltime_away_goals INT DEFAULT 0
 );
+
 CREATE TABLE data (
     key VARCHAR(255) PRIMARY KEY,
     value TEXT
@@ -43,7 +63,28 @@ INSERT INTO categories (name, description) VALUES
 ('Esports', 'Esports events like Dota 2 or League of Legends'),
 ('Politics', 'Political events and elections');
 
-INSERT INTO events (name, description, start_time, category) VALUES
-('Football World Cup Final', 'The final match of the Football World Cup', '2025-07-10 18:00:00', 'Sports'),
-('Dota 2 International', 'The annual Dota 2 championship', '2025-08-15 12:00:00', 'Esports'),
-('US Presidential Election', '2028 US Presidential Election', '2028-11-05 00:00:00', 'Politics');
+INSERT INTO events (
+    name, description, start_time, category, referee, venue_name, venue_city, 
+    home_team_name, home_team_logo, away_team_name, away_team_logo, 
+    home_goals, away_goals, match_status, halftime_home_goals, halftime_away_goals, 
+    fulltime_home_goals, fulltime_away_goals
+) VALUES (
+    'Burnley vs Manchester City', 
+    'Football match description', 
+    '2023-08-11 19:00:00', 
+    'Sports', 
+    'C. Pawson', 
+    'Turf Moor', 
+    'Burnley', 
+    'Burnley', 
+    'https://media.api-sports.io/football/teams/44.png',
+    'Manchester City', 
+    'https://media.api-sports.io/football/teams/50.png',
+    0, 
+    3, 
+    'Match Finished',
+    0,
+    2,
+    0,
+    3
+);

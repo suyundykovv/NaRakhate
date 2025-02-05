@@ -36,6 +36,8 @@ func (s *Server) Start(addr string) {
 	apis.Use(api.JWTAuthMiddleware)
 	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
+	r.HandleFunc("/getApi", s.FetchFootballMatchesHandler).Methods("GET")
+
 	r.HandleFunc("/sign-up", s.SignupHandler).Methods("POST")
 	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")
 	r.HandleFunc("/getUser", s.getAllUsersHandler).Methods("GET")
@@ -80,15 +82,23 @@ func (s *Server) Start(addr string) {
 }
 
 func (s *Server) startBackgroundWorker() {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(1 * time.Hour) // Fetch every hour
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			s.mu.Lock()
-			logging.Info("Server status", "requests", s.requests)
-			s.mu.Unlock()
+			logging.Info("Fetching football matches from Football API Sports...")
+			matches, err := s.fetchFootballMatches()
+			if err != nil {
+				logging.Error("Failed to fetch football match data", err)
+				continue
+			}
+
+			err = s.saveFootballMatchesToDB(matches)
+			if err != nil {
+				logging.Error("Failed to save football match data to DB", err)
+			}
 		case <-s.shutdownCh:
 			logging.Info("Background worker shutting down...")
 			return

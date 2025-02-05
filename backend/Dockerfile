@@ -22,6 +22,9 @@ WORKDIR /app
 # Copy the built Go binary from the previous stage
 COPY --from=builder /app/main .
 
+# Install necessary certificates for SSL verification
+RUN apt-get update && apt-get install -y ca-certificates
+
 # Expose port for the app
 EXPOSE 8080
 
