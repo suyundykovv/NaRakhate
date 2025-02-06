@@ -36,7 +36,6 @@ func (s *Server) readAllEvents() ([]models.Event, error) {
 
 	return events, rows.Err()
 }
-
 func (s *Server) readEventByID(id int) (*models.Event, error) {
 	var event models.Event
 

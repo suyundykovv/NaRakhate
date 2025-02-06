@@ -15,8 +15,8 @@ func (s *Server) fetchFootballMatches() ([]models.Fixture, error) {
 	var fixtures []models.Fixture
 	maxRetries := 3
 
-	date := "2025-02-06"
-	url := fmt.Sprintf("https://v3.football.api-sports.io/fixtures?date=%s", date)
+	currentDate := time.Now().Format("2006-01-02")
+	url := fmt.Sprintf("https://v3.football.api-sports.io/fixtures?date=%s", currentDate)
 
 	for i := 0; i < maxRetries; i++ {
 		req, err := http.NewRequest("GET", url, nil)
@@ -39,22 +39,18 @@ func (s *Server) fetchFootballMatches() ([]models.Fixture, error) {
 			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
 
-		// Define a struct for the response to map the incoming data
 		var response models.FootballResponse
 		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 			return nil, fmt.Errorf("error decoding response: %w", err)
 		}
 
-		// Directly use the Response from the decoded data
 		fixtures = response.Response
 
-		// If successful, break out of the retry loop
 		break
 	}
 
 	return fixtures, nil
 }
-
 func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 	for _, fixture := range fixtures {
 		startTime := fixture.FixtureDetails.Date
@@ -82,7 +78,18 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 			}
 			log.Printf("Inserted match: %s vs %s", fixture.Teams.Home.Name, fixture.Teams.Away.Name)
 		} else {
-			log.Printf("Match %s already exists", matchName)
+			_, err = s.db.Exec(`
+				UPDATE events 
+				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5
+				WHERE name = $6 AND start_time = $7
+			`, "Football match description", "Sports", fixture.FixtureDetails.Referee,
+				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City,
+				matchName, startTime)
+			if err != nil {
+				log.Println("Error updating match data:", err)
+				return err
+			}
+			log.Printf("Updated match: %s", matchName)
 		}
 	}
 
