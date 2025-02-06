@@ -2,9 +2,10 @@ package models
 
 import "time"
 
-type Leaderboard struct {
-	ID        int       `json:"id" db:"id"`
-	UserID    int       `json:"user_id" db:"user_id"`
-	TotalWin  float64   `json:"total_win" db:"total_win"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+// Player представляет игрока с его выигрышами
+type Player struct {
+	ID            int64     `json:"id"`
+	Username      string    `json:"username"`
+	TotalWinnings float64   `json:"total_winnings"`
+	CreatedAt     time.Time `json:"created_at"`
 }

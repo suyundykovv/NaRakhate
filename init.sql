@@ -32,18 +32,18 @@ CREATE TABLE categories (
     description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS leaderboard (
-                                           id SERIAL PRIMARY KEY,
-                                           user_id INT NOT NULL,
-                                           total_win FLOAT NOT NULL,
-                                           updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
+-- Пример init.sql
+CREATE TABLE IF NOT EXISTS players (
+                                       id SERIAL PRIMARY KEY,
+                                       username VARCHAR(255) NOT NULL,
+    total_winnings DECIMAL(15, 2) NOT NULL DEFAULT 0.00
+    );
 
--- Пример данных
-INSERT INTO leaderboard (user_id, total_win) VALUES (1, 1000.50);
-INSERT INTO leaderboard (user_id, total_win) VALUES (2, 1500.75);
-INSERT INTO leaderboard (user_id, total_win) VALUES (3, 2000.00);
 
+-- Вставка примеров игроков
+INSERT INTO players (username, total_winnings) VALUES ('Player1', 1500.75);
+INSERT INTO players (username, total_winnings) VALUES ('Player2', 2000.00);
+INSERT INTO players (username, total_winnings) VALUES ('Player3', 3200.50);
 
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@example.com', 'hashedpassword1', 'admin'),

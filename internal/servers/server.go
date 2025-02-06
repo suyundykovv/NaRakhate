@@ -1,19 +1,18 @@
 package servers
 
 import (
-	"Aitu-Bet/internal/api"
+	"Aitu-Bet/internal/api" // Убедись, что ты правильно импортируешь пакет api
 	"Aitu-Bet/logging"
 	"context"
 	"database/sql"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
-	"time"
-
-	"github.com/gorilla/mux"
 )
 
+// Новая структура сервера
 type Server struct {
 	mu         sync.Mutex
 	db         *sql.DB
@@ -21,6 +20,7 @@ type Server struct {
 	shutdownCh chan struct{}
 }
 
+// Новый конструктор сервера
 func NewServer(db *sql.DB) *Server {
 	return &Server{
 		db:         db,
@@ -28,34 +28,21 @@ func NewServer(db *sql.DB) *Server {
 	}
 }
 
+// Запуск сервера
 func (s *Server) Start(addr string) {
 	r := mux.NewRouter()
 	logging.Info("Setting up server routes")
 
+	// Подключаем маршруты API
+	r.HandleFunc("/api/leaderboard", api.GetTopPlayersHandler).Methods("GET")
+	r.HandleFunc("/api/player", api.AddPlayerHandler).Methods("POST")
+
+	// Настройка других API маршрутов
 	apis := r.PathPrefix("/api").Subrouter()
-	apis.Use(api.JWTAuthMiddleware)
+	apis.Use(api.JWTAuthMiddleware) // Защищаем маршруты
 	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
-	r.HandleFunc("/sign-up", s.SignupHandler).Methods("POST")
-	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")
-	r.HandleFunc("/getUser", s.getAllUsersHandler).Methods("GET")
-	r.HandleFunc("/deleteUser/{key}", s.deleteUserHandler).Methods("DELETE")
-	r.HandleFunc("/updateUser", s.updateUserHandler).Methods("PUT")
-
-	r.HandleFunc("/createBet", s.CreateBetHandler).Methods("POST")
-	r.HandleFunc("/getBets", s.GetAllBetsHandler).Methods("GET")
-	r.HandleFunc("/getBet/{id}", s.GetBetByIDHandler).Methods("GET")
-	r.HandleFunc("/updateBet", s.UpdateBetHandler).Methods("PUT")
-	r.HandleFunc("/deleteBet/{id}", s.DeleteBetHandler).Methods("DELETE")
-
-	r.HandleFunc("/createEvent", s.CreateEventHandler).Methods("POST")
-	r.HandleFunc("/getEvents", s.GetAllEventsHandler).Methods("GET")
-	r.HandleFunc("/getEvent/{id}", s.GetEventByIDHandler).Methods("GET")
-	r.HandleFunc("/updateEvent", s.UpdateEventHandler).Methods("PUT")
-	r.HandleFunc("/deleteEvent/{id}", s.DeleteEventHandler).Methods("DELETE")
-
-	go s.startBackgroundWorker()
-
+	// Подключение к серверу
 	addr = ":" + addr
 	srv := &http.Server{Addr: addr, Handler: r}
 
@@ -66,6 +53,7 @@ func (s *Server) Start(addr string) {
 		}
 	}()
 
+	// Обработка сигнала завершения работы
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
@@ -76,23 +64,6 @@ func (s *Server) Start(addr string) {
 		logging.Error("Server shutdown failed", err)
 	} else {
 		logging.Info("Server gracefully shut down")
-	}
-}
-
-func (s *Server) startBackgroundWorker() {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			s.mu.Lock()
-			logging.Info("Server status", "requests", s.requests)
-			s.mu.Unlock()
-		case <-s.shutdownCh:
-			logging.Info("Background worker shutting down...")
-			return
-		}
 	}
 }
 

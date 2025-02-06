@@ -2,58 +2,28 @@ package api
 
 import (
 	"Aitu-Bet/internal/services"
-	"github.com/gin-gonic/gin"
-	"log"
+	"encoding/json"
 	"net/http"
-	"strconv"
 )
 
-// LeaderboardHandler — обработчик для работы с лидербордом
-type LeaderboardHandler struct {
-	Service *services.LeaderboardService
+// ProtectedHandler — обработчик для защищенного маршрута
+func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
+	// Для примера, просто возвращаем статус 200 OK
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Protected content"})
 }
 
-// GetTopPlayers возвращает топ игроков по выигрышу
-func (h *LeaderboardHandler) GetTopPlayers(c *gin.Context) {
-	limitStr := c.DefaultQuery("limit", "10") // Получаем limit из запроса, по умолчанию 10
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
-
-	log.Printf("🔍 Received request to fetch top %d players", limit) // Логируем запрос на топ игроков
-
-	// Вызов сервиса для получения топ игроков
-	players, err := h.Service.GetTopPlayers(limit)
+// GetTopPlayersHandler — обработчик для получения топ-игроков
+func GetTopPlayersHandler(w http.ResponseWriter, r *http.Request) {
+	// Получаем топ-10 игроков
+	players, err := services.GetTopPlayers(10)
 	if err != nil {
-		log.Printf("❌ Error in Service.GetTopPlayers: %v", err) // Логируем ошибку сервиса
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch leaderboard"})
+		http.Error(w, "Error getting top players", http.StatusInternalServerError)
 		return
 	}
 
-	// Логируем успешный ответ
-	log.Printf("✅ Successfully fetched %d players", len(players))
-	c.JSON(http.StatusOK, players)
-}
-
-// Регистрация маршрутов
-func RegisterRoutes(router *gin.Engine, leaderboardService *services.LeaderboardService) {
-	leaderboardHandler := &LeaderboardHandler{Service: leaderboardService}
-
-	// Защищенный эндпоинт (пример)
-	router.GET("/protected", ProtectedEndpoint)
-
-	// Эндпоинт для лидерборда
-	router.GET("/leaderboard", leaderboardHandler.GetTopPlayers)
-}
-
-// Защищенный эндпоинт, пример работы с userID
-func ProtectedEndpoint(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User ID not found"})
-		return
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(players); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Welcome authorized user", "user_id": userID})
 }
