@@ -70,7 +70,7 @@ func (s *Server) deleteUserData(id string) error {
 func (s *Server) GetTableUsers() ([]models.User, error) {
 	var users []models.User
 
-	rows, err := s.db.Query("SELECT id, username, Wincash FROM users ORDER BY Wincash ASC ")
+	rows, err := s.db.Query("SELECT id, username, Wincash FROM users ORDER BY Wincash DESC ")
 	if err != nil {
 		return nil, err
 	}
