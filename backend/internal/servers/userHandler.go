@@ -111,3 +111,13 @@ func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+func (s *Server) getTable(w http.ResponseWriter, r *http.Request) {
+	users, err := s.GetTableUsers()
+	if err != nil {
+		http.Error(w, "Failed to retrieve table users", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
+}

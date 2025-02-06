@@ -67,3 +67,22 @@ func (s *Server) deleteUserData(id string) error {
 	_, err := s.db.Exec(`DELETE FROM users WHERE "id" = $1`, id)
 	return err
 }
+func (s *Server) GetTableUsers() ([]models.User, error) {
+	var users []models.User
+
+	rows, err := s.db.Query("SELECT id, username, Wincash FROM users ORDER BY Wincash ASC ")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.ID, &user.Username, &user.Wincash); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, rows.Err()
+}
