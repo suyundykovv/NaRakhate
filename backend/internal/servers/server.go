@@ -37,6 +37,9 @@ func (s *Server) Start(addr string) {
 	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
 	r.HandleFunc("/getApi", s.FetchFootballMatchesHandler).Methods("GET")
+	r.HandleFunc("/addMatch", s.FetchAndSaveMatchesHandler).Methods("GET")
+	r.HandleFunc("/addLeague", s.FetchLeagueMatchesHandler).Methods("GET")
+	r.HandleFunc("/getMatchs", s.GetAllMatchesHandler).Methods("GET")
 
 	r.HandleFunc("/sign-up", s.SignupHandler).Methods("POST")
 	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")

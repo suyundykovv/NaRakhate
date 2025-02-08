@@ -3,6 +3,7 @@ package servers
 import (
 	"Aitu-Bet/internal/models"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -81,5 +82,20 @@ func (s *Server) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
 	if err := s.deleteEventData(id); err != nil {
 		http.Error(w, "Failed to delete event", http.StatusInternalServerError)
 		return
+	}
+}
+
+func (s *Server) GetAllMatchesHandler(w http.ResponseWriter, r *http.Request) {
+	fixtures, err := s.readAllFixtures()
+	if err != nil {
+		log.Printf("Error reading fixtures: %v", err)
+		http.Error(w, "Failed to retrieve fixtures", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(fixtures); err != nil {
+		log.Printf("Error encoding fixtures to JSON: %v", err)
+		http.Error(w, "Failed to encode fixtures to JSON", http.StatusInternalServerError)
 	}
 }

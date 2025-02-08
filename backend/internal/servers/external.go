@@ -3,7 +3,7 @@ package servers
 import (
 	"Aitu-Bet/config"
 	"Aitu-Bet/internal/models"
-	"Aitu-Bet/logging"
+	"Aitu-Bet/internal/services"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -45,12 +45,51 @@ func (s *Server) fetchFootballMatches() ([]models.Fixture, error) {
 		}
 
 		fixtures = response.Response
-
 		break
 	}
 
 	return fixtures, nil
 }
+
+func (s *Server) FetchFootballMatchesHandler(w http.ResponseWriter, r *http.Request) {
+	leagueID := r.URL.Query().Get("league_id")
+	if leagueID == "" {
+		http.Error(w, "League ID is required", http.StatusBadRequest)
+		return
+	}
+
+	matches, err := s.fetchFootballMatches()
+	if err != nil {
+		log.Printf("Error fetching football matches: %v", err)
+		http.Error(w, "Failed to retrieve football matches", http.StatusInternalServerError)
+		return
+	}
+
+	filteredMatches := filterMatchesByLeague(matches, leagueID)
+
+	err = s.saveFootballMatchesToDB(filteredMatches)
+	if err != nil {
+		log.Printf("Failed to save filtered football matches to DB: %v", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(filteredMatches); err != nil {
+		log.Printf("Error encoding football matches to JSON: %v", err)
+		http.Error(w, "Failed to encode football matches to JSON", http.StatusInternalServerError)
+	}
+}
+
+func filterMatchesByLeague(fixtures []models.Fixture, leagueID string) []models.Fixture {
+	var filteredFixtures []models.Fixture
+	for _, fixture := range fixtures {
+		if fmt.Sprintf("%d", fixture.League.ID) == leagueID {
+			filteredFixtures = append(filteredFixtures, fixture)
+		}
+	}
+	return filteredFixtures
+}
+
 func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 	for _, fixture := range fixtures {
 		startTime := fixture.FixtureDetails.Date
@@ -64,14 +103,18 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 			log.Println("Error checking if event exists:", err)
 			return err
 		}
-
+		odds, err := services.CreateOddsService(fixture, s.db)
+		if err != nil {
+			log.Println("Error creating odds:", err)
+			return err
+		}
 		if !eventExists {
 			_, err = s.db.Exec(`
-				INSERT INTO events (name, description, start_time, category, referee, venue_name, venue_city)
-				VALUES ($1, $2, $3, $4, $5, $6, $7)
+				INSERT INTO events (name, description, start_time, category, referee, venue_name, venue_city, home_win_odds, away_win_odds, draw_odds )
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 			`, matchName,
 				"Football match description", startTime, "Sports", fixture.FixtureDetails.Referee,
-				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City)
+				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City, odds.HomeWin, odds.AwayWin, odds.Draw)
 			if err != nil {
 				log.Println("Error inserting match data:", err)
 				return err
@@ -81,10 +124,10 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 			_, err = s.db.Exec(`
 				UPDATE events 
 				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5
-				WHERE name = $6 AND start_time = $7
+				WHERE name = $6 , start_time = $7, home_win_odds = $8, away_win_odds = $9 AND draw_odds = $10
 			`, "Football match description", "Sports", fixture.FixtureDetails.Referee,
 				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City,
-				matchName, startTime)
+				matchName, startTime, odds.HomeWin, odds.AwayWin, odds.Draw)
 			if err != nil {
 				log.Println("Error updating match data:", err)
 				return err
@@ -94,23 +137,4 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 	}
 
 	return nil
-}
-
-func (s *Server) FetchFootballMatchesHandler(w http.ResponseWriter, r *http.Request) {
-	matches, err := s.fetchFootballMatches()
-	if err != nil {
-		log.Printf("Error fetching football matches: %v", err)
-		http.Error(w, "Failed to retrieve football matches", http.StatusInternalServerError)
-		return
-	}
-	err = s.saveFootballMatchesToDB(matches)
-	if err != nil {
-		logging.Error("Failed to save football match data to DB", err)
-	}
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(matches); err != nil {
-		log.Printf("Error encoding football matches to JSON: %v", err)
-		http.Error(w, "Failed to encode football matches to JSON", http.StatusInternalServerError)
-	}
 }
