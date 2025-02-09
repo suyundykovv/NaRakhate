@@ -3,7 +3,8 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) DEFAULT 'user'
+    role VARCHAR(20) DEFAULT 'user',
+    cash NUMERIC(10, 2) DEFAULT 0.00
 );
 CREATE TABLE matches (
     id SERIAL PRIMARY KEY,               
@@ -59,22 +60,24 @@ CREATE TABLE bets (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     event_id INT REFERENCES events(id) ON DELETE CASCADE,
+    odd_selection VARCHAR(50),
+    odd_value NUMERIC(10, 2),
     amount NUMERIC(10, 2) NOT NULL,
-    outcome VARCHAR(50),
+    income NUMERIC(10, 2),
+    status VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT
 );
 
-INSERT INTO users (username, email, password, role) VALUES
-('admin', 'admin@example.com', 'hashedpassword1', 'admin'),
-('user1', 'user1@example.com', 'hashedpassword2', 'user'),
-('user2', 'user2@example.com', 'hashedpassword3', 'user'),
-('Aday','adaydhx@gmail.com','Aday2004','user');
+INSERT INTO users (username, email, password, role, cash) VALUES
+('admin', 'admin@example.com', 'hashedpassword1', 'admin', '1000'),
+('user1', 'user1@example.com', 'hashedpassword2', 'user','100'),
+('user2', 'user2@example.com', 'hashedpassword3', 'user','10000'),
+('Aday','adaydhx@gmail.com','Aday2004','user','1000');
 
 INSERT INTO categories (name, description) VALUES
 ('Sports', 'Sports events like football or basketball'),
@@ -135,3 +138,6 @@ VALUES
   (3, 36, 4, 3, '2023-08-14 21:00:00', 140, 'Oscar Blue', 'Stadium R', 'City R'),
   (3, 38, 1, 0, '2023-08-14 22:00:00', 140, 'Paul Red', 'Stadium S', 'City S'),
   (3, 40, 3, 2, '2023-08-14 23:00:00', 140, 'Quinn Yellow', 'Stadium T', 'City T');
+INSERT INTO bets (user_id, event_id, odd_selection, odd_value, amount, income, status) VALUES
+(1, 1, 'home', 2.50, 100.00, 250.00, 'open'),
+(2, 1, 'draw', 3.20, 50.00, 160.00, 'closed');

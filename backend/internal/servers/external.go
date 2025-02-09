@@ -53,10 +53,6 @@ func (s *Server) fetchFootballMatches() ([]models.Fixture, error) {
 
 func (s *Server) FetchFootballMatchesHandler(w http.ResponseWriter, r *http.Request) {
 	leagueID := r.URL.Query().Get("league_id")
-	if leagueID == "" {
-		http.Error(w, "League ID is required", http.StatusBadRequest)
-		return
-	}
 
 	matches, err := s.fetchFootballMatches()
 	if err != nil {
@@ -65,7 +61,12 @@ func (s *Server) FetchFootballMatchesHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	filteredMatches := filterMatchesByLeague(matches, leagueID)
+	var filteredMatches []models.Fixture
+	if leagueID != "" {
+		filteredMatches = filterMatchesByLeague(matches, leagueID)
+	} else {
+		filteredMatches = matches
+	}
 
 	err = s.saveFootballMatchesToDB(filteredMatches)
 	if err != nil {
@@ -73,7 +74,6 @@ func (s *Server) FetchFootballMatchesHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
 	if err := json.NewEncoder(w).Encode(filteredMatches); err != nil {
 		log.Printf("Error encoding football matches to JSON: %v", err)
 		http.Error(w, "Failed to encode football matches to JSON", http.StatusInternalServerError)
@@ -93,7 +93,6 @@ func filterMatchesByLeague(fixtures []models.Fixture, leagueID string) []models.
 func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 	for _, fixture := range fixtures {
 		startTime := fixture.FixtureDetails.Date
-
 		matchName := fixture.Teams.Home.Name + " vs " + fixture.Teams.Away.Name
 
 		var eventExists bool
@@ -110,11 +109,12 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 		}
 		if !eventExists {
 			_, err = s.db.Exec(`
-				INSERT INTO events (name, description, start_time, category, referee, venue_name, venue_city, home_win_odds, away_win_odds, draw_odds )
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				INSERT INTO events (
+					name, description, start_time, category, referee, venue_name, venue_city, home_win_odds, away_win_odds, draw_odds, match_status
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			`, matchName,
 				"Football match description", startTime, "Sports", fixture.FixtureDetails.Referee,
-				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City, odds.HomeWin, odds.AwayWin, odds.Draw)
+				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City, odds.HomeWin, odds.AwayWin, odds.Draw, fixture.FixtureDetails.Status.Long)
 			if err != nil {
 				log.Println("Error inserting match data:", err)
 				return err
@@ -123,10 +123,10 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 		} else {
 			_, err = s.db.Exec(`
 				UPDATE events 
-				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5
-				WHERE name = $6 , start_time = $7, home_win_odds = $8, away_win_odds = $9 AND draw_odds = $10
+				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5, match_status = $6
+				WHERE name = $7 AND start_time = $8 AND home_win_odds = $9 AND away_win_odds = $10 AND draw_odds = $11
 			`, "Football match description", "Sports", fixture.FixtureDetails.Referee,
-				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City,
+				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City, fixture.FixtureDetails.Status.Long,
 				matchName, startTime, odds.HomeWin, odds.AwayWin, odds.Draw)
 			if err != nil {
 				log.Println("Error updating match data:", err)

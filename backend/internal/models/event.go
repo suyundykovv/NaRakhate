@@ -7,6 +7,7 @@ type Event struct {
 	StartTime   string `json:"start_time"`
 	Category    string `json:"category"`
 	Odd         Odds   `json:"odds"`
+	Status      string `json:"status"`
 }
 
 type Odds struct {
