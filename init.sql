@@ -52,6 +52,28 @@ CREATE TABLE categories (
     description TEXT
 );
 
+CREATE TABLE wheel_rewards (
+    id SERIAL PRIMARY KEY,
+    reward_name VARCHAR(255) NOT NULL,
+    reward_type VARCHAR(50) NOT NULL,  -- (freebet, cashback, bonus_money)
+    reward_value INT NOT NULL,         -- (размер бонуса)
+    probability FLOAT NOT NULL         -- (вероятность выпадения, в %)
+);
+
+CREATE TABLE user_wheel_spins (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    reward_id INT REFERENCES wheel_rewards(id),
+    spin_time TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO wheel_rewards (reward_name, reward_type, reward_value, probability)
+VALUES
+    ('Фрибет 100', 'bonus_money', 100, 50.0),
+    ('Кэшбек 50%', 'cashback', 50, 30.0),
+    ('Джекпот 1000', 'bonus_money', 1000, 20.0);
+
+
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@example.com', 'hashedpassword1', 'admin'),
 ('user1', 'user1@example.com', 'hashedpassword2', 'user'),

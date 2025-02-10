@@ -57,6 +57,9 @@ func (s *Server) Start(addr string) {
 	r.HandleFunc("/updateEvent", s.UpdateEventHandler).Methods("PUT")
 	r.HandleFunc("/deleteEvent/{id}", s.DeleteEventHandler).Methods("DELETE")
 
+	logging.Info("Registering /spin-wheel route")
+	r.HandleFunc("/spin-wheel", s.SpinWheelHandler).Methods("GET")
+
 	go s.startBackgroundWorker()
 
 	addr = ":" + addr
