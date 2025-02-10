@@ -4,6 +4,7 @@ import (
 	"Aitu-Bet/internal/models"
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 func DeductBetAmountFromUser(bet models.Bet, db *sql.DB) error {
@@ -27,17 +28,60 @@ func DeductBetAmountFromUser(bet models.Bet, db *sql.DB) error {
 }
 
 func AddWinningsForClosedBet(betID int, db *sql.DB) error {
-	var outcome string
-	var income float64
-	var userID int
-	query := `
-		SELECT outcome, income, user_id 
+	var (
+		oddSelection string
+		oddValue     float64
+		amount       float64
+		income       float64
+		userID       int
+		eventID      int
+	)
+	betQuery := `
+		SELECT odd_selection, odd_value, amount, income, user_id, event_id 
 		FROM bets 
 		WHERE id = $1
 	`
-	err := db.QueryRow(query, betID).Scan(&outcome, &income, &userID)
+	err := db.QueryRow(betQuery, betID).Scan(&oddSelection, &oddValue, &amount, &income, &userID, &eventID)
 	if err != nil {
 		return fmt.Errorf("failed to query bet: %w", err)
+	}
+
+	var (
+		homeGoals int
+		awayGoals int
+	)
+	eventQuery := `
+		SELECT home_goals, away_goals 
+		FROM events 
+		WHERE id = $1
+	`
+	err = db.QueryRow(eventQuery, eventID).Scan(&homeGoals, &awayGoals)
+	if err != nil {
+		return fmt.Errorf("failed to query event: %w", err)
+	}
+
+	var outcome string
+	switch oddSelection {
+	case "home":
+		if homeGoals > awayGoals {
+			outcome = "win"
+		} else {
+			outcome = "lose"
+		}
+	case "away":
+		if awayGoals > homeGoals {
+			outcome = "win"
+		} else {
+			outcome = "lose"
+		}
+	case "draw":
+		if homeGoals == awayGoals {
+			outcome = "win"
+		} else {
+			outcome = "lose"
+		}
+	default:
+		return fmt.Errorf("invalid odd_selection: %s", oddSelection)
 	}
 
 	if outcome == "win" {
@@ -50,6 +94,10 @@ func AddWinningsForClosedBet(betID int, db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("failed to update user cash: %w", err)
 		}
+		log.Printf("Added winnings for bet %d: user %d received %f", betID, userID, income)
+	} else {
+		log.Printf("Bet %d lost: no winnings added for user %d", betID, userID)
 	}
+
 	return nil
 }

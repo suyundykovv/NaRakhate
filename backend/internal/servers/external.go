@@ -95,6 +95,7 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 		startTime := fixture.FixtureDetails.Date
 		matchName := fixture.Teams.Home.Name + " vs " + fixture.Teams.Away.Name
 
+		// Check if the event already exists
 		var eventExists bool
 		err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM events WHERE name=$1 AND start_time=$2)",
 			matchName, startTime).Scan(&eventExists)
@@ -102,12 +103,16 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 			log.Println("Error checking if event exists:", err)
 			return err
 		}
+
+		// Create odds for the fixture
 		odds, err := services.CreateOddsService(fixture, s.db)
 		if err != nil {
 			log.Println("Error creating odds:", err)
 			return err
 		}
+
 		if !eventExists {
+			// Insert new event if it doesn't exist
 			_, err = s.db.Exec(`
 				INSERT INTO events (
 					name, description, start_time, category, referee, venue_name, venue_city, home_win_odds, away_win_odds, draw_odds, match_status
@@ -121,13 +126,16 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 			}
 			log.Printf("Inserted match: %s vs %s", fixture.Teams.Home.Name, fixture.Teams.Away.Name)
 		} else {
+			// Update existing event
 			_, err = s.db.Exec(`
 				UPDATE events 
-				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5, match_status = $6
-				WHERE name = $7 AND start_time = $8 AND home_win_odds = $9 AND away_win_odds = $10 AND draw_odds = $11
+				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5, 
+				    home_win_odds = $6, away_win_odds = $7, draw_odds = $8, match_status = $9
+				WHERE name = $10 AND start_time = $11
 			`, "Football match description", "Sports", fixture.FixtureDetails.Referee,
-				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City, fixture.FixtureDetails.Status.Long,
-				matchName, startTime, odds.HomeWin, odds.AwayWin, odds.Draw)
+				fixture.FixtureDetails.Venue.Name, fixture.FixtureDetails.Venue.City,
+				odds.HomeWin, odds.AwayWin, odds.Draw, fixture.FixtureDetails.Status.Long,
+				matchName, startTime)
 			if err != nil {
 				log.Println("Error updating match data:", err)
 				return err

@@ -20,7 +20,7 @@ func (s *Server) readAllEvents() ([]models.Event, error) {
 	var events []models.Event
 
 	rows, err := s.db.Query(`
-        SELECT id, name, description, start_time, category, home_win_odds, away_win_odds, draw_odds 
+        SELECT id, name, description, start_time, category, home_win_odds, away_win_odds, draw_odds, match_status
         FROM events
     `)
 	if err != nil {
@@ -41,6 +41,7 @@ func (s *Server) readAllEvents() ([]models.Event, error) {
 			&homeWinOdds,
 			&awayWinOdds,
 			&drawOdds,
+			&event.Status,
 		); err != nil {
 			return nil, err
 		}

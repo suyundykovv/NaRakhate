@@ -139,5 +139,5 @@ VALUES
   (3, 38, 1, 0, '2023-08-14 22:00:00', 140, 'Paul Red', 'Stadium S', 'City S'),
   (3, 40, 3, 2, '2023-08-14 23:00:00', 140, 'Quinn Yellow', 'Stadium T', 'City T');
 INSERT INTO bets (user_id, event_id, odd_selection, odd_value, amount, income, status) VALUES
-(1, 1, 'home', 2.50, 100.00, 250.00, 'open'),
+(1, 1, 'away', 2.50, 100.00, 250.00, 'open'),
 (2, 1, 'draw', 3.20, 50.00, 160.00, 'closed');

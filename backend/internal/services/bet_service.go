@@ -121,21 +121,18 @@ func UpdateBetStatusIfMatchFinished(betID int, eventID int, oddSelection string,
 	return nil
 }
 
-func isEventFinished(eventID int, db *sql.DB) (bool, error) {
+func isEventFinished(eventID int, db *sql.DB) bool {
 	var matchStatus string
 	query := `SELECT match_status FROM events WHERE id = $1`
 	err := db.QueryRow(query, eventID).Scan(&matchStatus)
 	if err != nil {
-		return false, fmt.Errorf("failed to get event status: %w", err)
+		return false
 	}
-	return matchStatus == "Match Finished", nil
+	return matchStatus == "Match Finished"
 }
 
 func CheckEventStatusForBet(eventID int, db *sql.DB) error {
-	finished, err := isEventFinished(eventID, db)
-	if err != nil {
-		return err
-	}
+	finished := isEventFinished(eventID, db)
 	if finished {
 		return fmt.Errorf("cannot create bet for finished event")
 	}
