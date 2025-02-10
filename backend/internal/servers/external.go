@@ -126,7 +126,6 @@ func (s *Server) saveFootballMatchesToDB(fixtures []models.Fixture) error {
 			}
 			log.Printf("Inserted match: %s vs %s", fixture.Teams.Home.Name, fixture.Teams.Away.Name)
 		} else {
-			// Update existing event
 			_, err = s.db.Exec(`
 				UPDATE events 
 				SET description = $1, category = $2, referee = $3, venue_name = $4, venue_city = $5, 
