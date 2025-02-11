@@ -46,10 +46,10 @@ func (s *Server) GetRandomReward() (models.WheelReward, error) {
 	return rewards[len(rewards)-1], nil
 }
 
-// Обновляем данные пользователя после спина
+// Обновляем данные пользователя после спина (без ограничения на 1 раз в день)
 func (s *Server) UpdateUserAfterSpin(userID int, reward models.WheelReward) error {
 	_, err := s.db.Exec(
-		"UPDATE users SET last_spin_time = NOW(), spin_count = spin_count + 1, wincash = wincash + $1 WHERE id = $2",
+		"UPDATE users SET spin_count = spin_count + 1, wincash = wincash + $1 WHERE id = $2",
 		reward.RewardValue, userID,
 	)
 	return err

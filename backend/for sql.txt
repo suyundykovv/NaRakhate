@@ -1,2 +1,7 @@
 docker exec -it narakhate-postgres-1 psql -U admin -d aitubet
 curl -X GET "http://localhost:8080/spin-wheel?user_id=1"
+for spin slot
+{
+  "user_id": 2,
+  "bet_amount": 100
+}
