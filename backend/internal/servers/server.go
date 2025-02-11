@@ -60,6 +60,8 @@ func (s *Server) Start(addr string) {
 	logging.Info("Registering /spin-wheel route")
 	r.HandleFunc("/spin-wheel", s.SpinWheelHandler).Methods("GET")
 
+	r.HandleFunc("/spin-slot", s.SpinSlotHandler).Methods("POST")
+
 	go s.startBackgroundWorker()
 
 	addr = ":" + addr

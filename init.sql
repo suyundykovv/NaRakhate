@@ -64,6 +64,18 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_spin_time TIMESTAMP DEFAULT '197
 ALTER TABLE users ADD COLUMN IF NOT EXISTS spin_count INT DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS wincash FLOAT DEFAULT 0;
 
+CREATE TABLE IF NOT EXISTS slot_spins (
+                                          id SERIAL PRIMARY KEY,
+                                          user_id INT REFERENCES users(id),
+    bet_amount FLOAT NOT NULL,
+    reel1 VARCHAR(50) NOT NULL,
+    reel2 VARCHAR(50) NOT NULL,
+    reel3 VARCHAR(50) NOT NULL,
+    payout FLOAT NOT NULL, -- Выигрыш или 0 при проигрыше
+    created_at TIMESTAMP DEFAULT NOW()
+    );
+
+
 
 INSERT INTO wheel_rewards (reward_name, reward_type, reward_value, probability)
 VALUES
