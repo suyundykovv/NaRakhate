@@ -2,12 +2,11 @@ import { useState } from "react"
 import LoginForm from "./LoginForm"
 import RegisterForm from "./RegisterForm"
 
-const AuthTabs = () => {
+const AuthTabs = ({ onLogin }) => {
   const [activeTab, setActiveTab] = useState("login")
 
   return (
     <div style={styles.container}>
-      {/* Вкладки */}
       <div style={styles.tabs}>
         <button style={activeTab === "login" ? styles.activeTab : styles.tab} onClick={() => setActiveTab("login")}>
           Вход
@@ -20,10 +19,7 @@ const AuthTabs = () => {
         </button>
       </div>
 
-      {/* Форма входа */}
-      {activeTab === "login" && <LoginForm />}
-
-      {/* Форма регистрации */}
+      {activeTab === "login" && <LoginForm onLogin={onLogin} />}
       {activeTab === "register" && <RegisterForm />}
     </div>
   )
@@ -78,4 +74,3 @@ const styles = {
 }
 
 export default AuthTabs
-
