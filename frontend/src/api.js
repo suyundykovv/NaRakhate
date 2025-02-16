@@ -1,5 +1,5 @@
 // api.js
-const API_BASE_URL = 'http://your-backend-url/api'; // Замените на ваш базовый URL бэкенда
+const API_BASE_URL = 'http://127.0.0.1:8080'; // Замените на ваш базовый URL бэкенда
 
 export const fetchBets = async () => {
   try {
@@ -38,4 +38,21 @@ export const createBet = async (betData) => {
   }
 };
 
-// Добавьте другие функции для обновления и удаления ставок, если нужно
+export const fetchMatchesByLeague = async (leagueId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/fetchLeagueMatches?league=${leagueId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch matches');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching matches:', error);
+    throw error;
+  }
+};
+

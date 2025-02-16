@@ -33,6 +33,7 @@ func (s *Server) Start(addr string) {
 	logging.Info("Setting up server routes")
 
 	apis := r.PathPrefix("/api").Subrouter()
+	apis.Use(api.CorsMiddleware)
 	apis.Use(api.JWTAuthMiddleware)
 	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
