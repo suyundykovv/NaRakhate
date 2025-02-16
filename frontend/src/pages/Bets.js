@@ -2,11 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { Gamepad2, Receipt, UserCircle, Clock, Timer, FolderRoot as Football } from 'lucide-react';
 import './style.css';
+import { fetchBets } from './api'; // Импортируем функцию для получения ставок
 
 function App() {
   const [activeTab, setActiveTab] = useState('bets');
   const navigate = useNavigate();
   const [matchMinutes, setMatchMinutes] = useState({});
+  const [betHistory, setBetHistory] = useState([]); // Состояние для хранения данных о ставках
+
+  // Загрузка данных о ставках при монтировании компонента
+  useEffect(() => {
+    const loadBets = async () => {
+      try {
+        const bets = await fetchBets();
+        setBetHistory(bets);
+      } catch (error) {
+        console.error('Failed to load bets:', error);
+      }
+    };
+
+    loadBets();
+  }, []);
   
   const betHistory = [
     {
@@ -79,8 +95,15 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const handlePlaceBet = () => {
+
+  const handlePlaceBet = async (betData) => {
     navigate('/games');
+    try {
+      const newBet = await createBet(betData);
+      setBetHistory([...betHistory, newBet]); // Обновляем состояние с новой ставкой
+    } catch (error) {
+      console.error('Failed to place bet:', error);
+    }
   };
 
   const getStatusIcon = (status, betId) => {
@@ -189,13 +212,13 @@ function App() {
               {betHistory.map((bet) => (
                 <div key={bet.id} className={`bet-item ${bet.status}`}>
                   <div className="bet-header">
-                    <span className="bet-date">{bet.date}</span>
+                    <span className="bet-date">{new Date(bet.createdAt).toLocaleDateString()}</span>
                     <div className="bet-status-indicator">
                       {getStatusIcon(bet.status, bet.id)}
-                      <span className="coefficient">{bet.coefficient}</span>
+                      <span className="coefficient">{bet.oddValue}</span>
                     </div>
                   </div>
-                  
+
                   <div className="bet-content">
                     <div className="match-info">
                       <div className="teams">
