@@ -52,7 +52,8 @@ func (s *Server) Start(addr string) {
 
 	r.HandleFunc("/sign-up", s.SignupHandler).Methods("POST")
 	r.HandleFunc("/log-in", s.LoginHandler).Methods("POST")
-	r.HandleFunc("/getUser", s.getAllUsersHandler).Methods("GET")
+	r.HandleFunc("/getUsers", s.getAllUsersHandler).Methods("GET")
+	r.HandleFunc("/getUser", s.UserInfoHandler).Methods("GET")
 	r.HandleFunc("/deleteUser/{key}", s.deleteUserHandler).Methods("DELETE")
 	r.HandleFunc("/updateUser", s.updateUserHandler).Methods("PUT")
 

@@ -31,6 +31,7 @@ func (s *Server) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
 }
+
 func (s *Server) updateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		ID       int    `json:"id"`
@@ -61,6 +62,7 @@ func (s *Server) updateUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User updated successfully"})
 }
+
 func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		Email    string `json:"email"`
@@ -71,7 +73,7 @@ func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.getUserByEmail(request.Email)
+	user, err := s.GetUserByEmail(request.Email)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
@@ -110,4 +112,23 @@ func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to delete users", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *Server) UserInfoHandler(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	user, err := s.FindUserByToken(tokenString)
+	if err != nil {
+		http.Error(w, "Failed to retrieve user", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }

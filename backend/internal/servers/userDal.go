@@ -2,6 +2,7 @@ package servers
 
 import (
 	"Aitu-Bet/internal/models"
+	"Aitu-Bet/utils"
 	"database/sql"
 	"errors"
 
@@ -25,7 +26,7 @@ func (s *Server) createUser(username, email, password, role string) (*models.Use
 	return &user, nil
 }
 
-func (s *Server) getUserByEmail(email string) (*models.User, error) {
+func (s *Server) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := s.db.QueryRow("SELECT id, username, email, password, role, cash FROM users WHERE email = $1", email).Scan(
 		&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.Cash)
@@ -66,4 +67,23 @@ func (s *Server) ReadAllUsers() ([]models.User, error) {
 func (s *Server) deleteUserData(id string) error {
 	_, err := s.db.Exec(`DELETE FROM users WHERE "id" = $1`, id)
 	return err
+}
+
+func (s *Server) FindUserByToken(tokenString string) (*models.User, error) {
+	// Validate the JWT token
+	claims, err := utils.ValidateJWT(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract email from claims
+	email := claims.Email
+
+	// Fetch the user by email
+	user, err := s.GetUserByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
