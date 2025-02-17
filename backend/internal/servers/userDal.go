@@ -17,8 +17,8 @@ func (s *Server) createUser(username, email, password, role string) (*models.Use
 
 	var user models.User
 	err = s.db.QueryRow(
-		"INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, cash",
-		username, email, hashedPassword, role).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Cash)
+		"INSERT INTO users (username, email, password, role, cash) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, role, cash",
+		username, email, hashedPassword, role, 1000).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Cash)
 
 	if err != nil {
 		return nil, err

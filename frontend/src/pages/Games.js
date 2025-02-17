@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import "./style_games.css";
-import { createBet } from "../api"; // Импортируем функцию для создания ставки
 
 function Games() {
   const [activeTab, setActiveTab] = useState("games");
@@ -18,14 +17,40 @@ function Games() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedBet, setSelectedBet] = useState(null); // Выбранная ставка (матч и тип ставки)
-  const [betAmount, setBetAmount] = useState(""); // Сумма ставки
-  const [showBetModal, setShowBetModal] = useState(false); // Показ модального окна
+  const [selectedBet, setSelectedBet] = useState(null); // Selected bet (match and bet type)
+  const [betAmount, setBetAmount] = useState(""); // Bet amount
+  const [showBetModal, setShowBetModal] = useState(false); // Show bet modal
+  const [userId, setUserId] = useState(null); // Store the user ID
 
+  const fetchUserId = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("No token found. Please log in again.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8080/getUser", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch user data");
+
+      const userData = await response.json();
+      setUserId(userData.id); // Set the user ID
+    } catch (err) {
+      setError("Error fetching user data: " + err.message);
+    }
+  };
+
+  // Fetch events from the backend
   const fetchEvents = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8080/getEvents');
-      if (!response.ok) throw new Error('Ошибка загрузки данных');
+      const response = await fetch("http://127.0.0.1:8080/getEvents");
+      if (!response.ok) throw new Error("Failed to load events");
       const data = await response.json();
       return data;
     } catch (error) {
@@ -37,57 +62,77 @@ function Games() {
   };
 
   useEffect(() => {
-    const loadEvents = async () => {
-      const eventsData = await fetchEvents();
+    const loadData = async () => {
+      await fetchUserId(); // Fetch user ID first
+      const eventsData = await fetchEvents(); // Then fetch events
       setEvents(eventsData);
     };
-    loadEvents();
+    loadData();
   }, []);
 
-  // Обработчик клика на кнопку ставки
+  // Handle bet button click
   const handleBetClick = (event, oddSelection, oddValue) => {
     setSelectedBet({ event, oddSelection, oddValue });
     setShowBetModal(true);
   };
 
-  // Обработчик отправки ставки
   const handlePlaceBet = async () => {
     if (!selectedBet || !betAmount || isNaN(betAmount) || betAmount <= 0) {
-      alert("Введите корректную сумму ставки");
+      alert("Please enter a valid bet amount");
       return;
     }
-
+  
+    if (!userId) {
+      alert("User ID is missing. Please log in again.");
+      return;
+    }
+  
     const betData = {
+      user_id: userId, // Include the user ID
       event_id: selectedBet.event.id,
       odd_selection: selectedBet.oddSelection,
       odd_value: selectedBet.oddValue,
       amount: parseFloat(betAmount),
     };
-
+  
     try {
-      await createBet(betData);
-      alert("Ставка успешно создана!");
+      const response = await fetch("http://127.0.0.1:8080/createBet", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(betData),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text(); // Get the error message from the response body
+        throw new Error(`Bet placement failed: ${errorText}`);
+      }
+  
+      const data = await response.json();
+      alert("Bet placed successfully!");
       setShowBetModal(false);
       setSelectedBet(null);
       setBetAmount("");
     } catch (error) {
-      console.error("Ошибка при создании ставки:", error);
-      alert("Не удалось создать ставку");
+      console.error("Error placing bet:", error); // Log detailed error
+      alert("Failed to place bet: " + error.message); // Show error message in the UI
     }
   };
+  
 
   return (
     <>
       <div className="container">
         <div className="header">
-          <h1>Футбольные матчи</h1>
+          <h1>Football Matches</h1>
         </div>
 
         <div className="content">
-          {loading && <div className="loading">Загрузка матчей...</div>}
-          {error && <div className="error">Ошибка: {error}</div>}
+          {loading && <div className="loading">Loading matches...</div>}
+          {error && <div className="error">Error: {error}</div>}
           {!loading && !error && events.length === 0 && (
-            <div className="empty">Нет доступных матчей</div>
+            <div className="empty">No matches available</div>
           )}
 
           <div className="match-list">
@@ -95,11 +140,11 @@ function Games() {
               <div key={event.id} className="match-item">
                 <div className="match-header">
                   <span>
-                    {new Date(event.start_time).toLocaleDateString('ru-RU', {
-                      day: 'numeric',
-                      month: 'long',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                    {new Date(event.start_time).toLocaleDateString("ru-RU", {
+                      day: "numeric",
+                      month: "long",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </span>
                   <div className="match-actions">
@@ -111,13 +156,13 @@ function Games() {
                 <div className="teams">
                   <div className="team team-left">
                     <span className="team-name">
-                      {event.name.split(' vs ')[0]}
+                      {event.name.split(" vs ")[0]}
                     </span>
                   </div>
                   <div className="vs">VS</div>
                   <div className="team team-right">
                     <span className="team-name">
-                      {event.name.split(' vs ')[1]}
+                      {event.name.split(" vs ")[1]}
                     </span>
                   </div>
                 </div>
@@ -125,21 +170,27 @@ function Games() {
                 <div className="betting-buttons">
                   <button
                     className="bet-button"
-                    onClick={() => handleBetClick(event, "home", event.odds.home_win)}
+                    onClick={() =>
+                      handleBetClick(event, "home", event.odds.home_win)
+                    }
                   >
-                    П1 ({event.odds.home_win.toFixed(2)})
+                    P1 ({event.odds.home_win.toFixed(2)})
                   </button>
                   <button
                     className="bet-button"
-                    onClick={() => handleBetClick(event, "draw", event.odds.draw)}
+                    onClick={() =>
+                      handleBetClick(event, "draw", event.odds.draw)
+                    }
                   >
-                    Н ({event.odds.draw.toFixed(2)})
+                    N ({event.odds.draw.toFixed(2)})
                   </button>
                   <button
                     className="bet-button"
-                    onClick={() => handleBetClick(event, "away", event.odds.away_win)}
+                    onClick={() =>
+                      handleBetClick(event, "away", event.odds.away_win)
+                    }
                   >
-                    П2 ({event.odds.away_win.toFixed(2)})
+                    P2 ({event.odds.away_win.toFixed(2)})
                   </button>
                 </div>
               </div>
@@ -147,22 +198,29 @@ function Games() {
           </div>
         </div>
 
-        {/* Модальное окно для ставки */}
+        {/* Bet Modal */}
         {showBetModal && (
           <div className="bet-modal">
             <div className="bet-modal-content">
-              <h3>Сделать ставку</h3>
-              <p>Матч: {selectedBet.event.name}</p>
-              <p>Ставка: {selectedBet.oddSelection === "home" ? "П1" : selectedBet.oddSelection === "away" ? "П2" : "Н"}</p>
-              <p>Коэффициент: {selectedBet.oddValue.toFixed(2)}</p>
+              <h3>Place Bet</h3>
+              <p>Match: {selectedBet.event.name}</p>
+              <p>
+                Bet:{" "}
+                {selectedBet.oddSelection === "home"
+                  ? "P1"
+                  : selectedBet.oddSelection === "away"
+                  ? "P2"
+                  : "N"}
+              </p>
+              <p>Odds: {selectedBet.oddValue.toFixed(2)}</p>
               <input
                 type="number"
-                placeholder="Сумма ставки"
+                placeholder="Bet amount"
                 value={betAmount}
                 onChange={(e) => setBetAmount(e.target.value)}
               />
-              <button onClick={handlePlaceBet}>Сделать ставку</button>
-              <button onClick={() => setShowBetModal(false)}>Отмена</button>
+              <button onClick={handlePlaceBet}>Place Bet</button>
+              <button onClick={() => setShowBetModal(false)}>Cancel</button>
             </div>
           </div>
         )}
@@ -171,21 +229,21 @@ function Games() {
           <div className="navbar-container">
             <NavItem
               icon={<Gamepad2 size={20} />}
-              label="Матчи"
+              label="Matches"
               active={activeTab === "games"}
               onClick={() => setActiveTab("games")}
               to="/games"
             />
             <NavItem
               icon={<Receipt size={20} />}
-              label="Ставки"
+              label="Bets"
               active={activeTab === "bets"}
               onClick={() => setActiveTab("bets")}
               to="/bets"
             />
             <NavItem
               icon={<UserCircle size={20} />}
-              label="Профиль"
+              label="Profile"
               active={activeTab === "profile"}
               onClick={() => setActiveTab("profile")}
               to="/profile"
@@ -200,7 +258,11 @@ function Games() {
 function NavItem({ icon, label, active, onClick, to }) {
   return (
     <div className="navbar-item">
-      <Link to={to} className={`nav-link ${active ? "active" : ""}`} onClick={onClick}>
+      <Link
+        to={to}
+        className={`nav-link ${active ? "active" : ""}`}
+        onClick={onClick}
+      >
         <div className="icon-container">{icon}</div>
         <span className="label">{label}</span>
       </Link>
