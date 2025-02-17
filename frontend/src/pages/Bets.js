@@ -47,11 +47,10 @@
 
     const handlePlaceBet = async (betData) => {
       try {
-        const newBet = await createBet(betData);
+        const newBet = await createBet(betData); // Передаем только данные
         setBetHistory([...betHistory, newBet]);
       } catch (error) {
         console.error('Failed to place bet:', error);
-        alert('Failed to place bet. Please try again later.');
       }
     };
 
@@ -154,9 +153,8 @@
                   <p className="empty-state-text">
                     You currently do not have any booked games
                   </p>
-                  // Пример вызова с передачей данных
-                  <button onClick={() => handlePlaceBet({ amount: 100, team: 'Manchester United' })}>
-                    Place a bet
+                  <button className="place-bet-btn" onClick={handlePlaceBet}>
+                                  Place a bet
                   </button>
                 </div>
               ) : (

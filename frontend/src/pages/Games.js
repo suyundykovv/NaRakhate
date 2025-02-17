@@ -7,168 +7,185 @@ import {
   Gamepad2,
   Receipt,
   UserCircle,
-  AlertCircle,
-  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import "./style_games.css";
-import { fetchMatchesByLeague } from '../api'; // Импортируем функцию для получения матчей
+import { createBet } from "../api"; // Импортируем функцию для создания ставки
 
 function Games() {
   const [activeTab, setActiveTab] = useState("games");
   const [selectedLeague, setSelectedLeague] = useState(null);
-  const [error, setError] = useState({ message: "", show: false });
-  const [leagueMatches, setLeagueMatches] = useState({}); // Состояние для хранения данных о матчах
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedBet, setSelectedBet] = useState(null); // Выбранная ставка (матч и тип ставки)
+  const [betAmount, setBetAmount] = useState(""); // Сумма ставки
+  const [showBetModal, setShowBetModal] = useState(false); // Показ модального окна
 
-  const leagues = [
-    {
-      id: "premier-league",
-      name: "Premier League",
-      country: "England",
-      logo: "https://w7.pngwing.com/pngs/157/277/png-transparent-lion-king-illustration-2016u201317-premier-league-1999u20132000-fa-premier-league-2017u201318-premier-league-english-football-league-chelsea-f-c-premier-league-file-purple-violet-logo-thumbnail.png",
-    },
-    {
-      id: "laliga",
-      name: "La Liga",
-      country: "Spain",
-      logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVrpWnhRW2DNpZXEbhP-qSnNPRGJdcv0cGxA&s",
-    },
-    {
-      id: "bundesliga",
-      name: "Bundesliga",
-      country: "Germany",
-      logo: "https://upload.wikimedia.org/wikipedia/en/thumb/d/df/Bundesliga_logo_%282017%29.svg/1200px-Bundesliga_logo_%282017%29.svg.png",
-    },
-    {
-      id: "serie-a",
-      name: "Serie A",
-      country: "Italy",
-      logo: "https://img2.freepng.ru/20180811/tqw/d25f3cd241a52cb74c6a8bc79f48402d.webp",
-    },
-    {
-      id: "ligue-1",
-      name: "Ligue 1",
-      country: "France",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Ligue1.svg/1200px-Ligue1.svg.png",
-    },
-  ];
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/getEvents');
+      if (!response.ok) throw new Error('Ошибка загрузки данных');
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      setError(error.message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (selectedLeague) {
-      const loadMatches = async () => {
-        try {
-          const matches = await fetchMatchesByLeague(selectedLeague);
-          setLeagueMatches({ [selectedLeague]: matches });
-        } catch (error) {
-          console.error('Failed to load matches:', error);
-          setError({ message: "Failed to load matches", show: true });
-        }
-      };
+    const loadEvents = async () => {
+      const eventsData = await fetchEvents();
+      setEvents(eventsData);
+    };
+    loadEvents();
+  }, []);
 
-      loadMatches();
+  // Обработчик клика на кнопку ставки
+  const handleBetClick = (event, oddSelection, oddValue) => {
+    setSelectedBet({ event, oddSelection, oddValue });
+    setShowBetModal(true);
+  };
+
+  // Обработчик отправки ставки
+  const handlePlaceBet = async () => {
+    if (!selectedBet || !betAmount || isNaN(betAmount) || betAmount <= 0) {
+      alert("Введите корректную сумму ставки");
+      return;
     }
-  }, [selectedLeague]);
 
- const handleOddsClick = () => {
-   setError({ message: "You can't place bets until the card is linked", show: true });
-   setTimeout(() => setError({ message: "", show: false }), 5000);
- };
+    const betData = {
+      event_id: selectedBet.event.id,
+      odd_selection: selectedBet.oddSelection,
+      odd_value: selectedBet.oddValue,
+      amount: parseFloat(betAmount),
+    };
+
+    try {
+      await createBet(betData);
+      alert("Ставка успешно создана!");
+      setShowBetModal(false);
+      setSelectedBet(null);
+      setBetAmount("");
+    } catch (error) {
+      console.error("Ошибка при создании ставки:", error);
+      alert("Не удалось создать ставку");
+    }
+  };
 
   return (
     <>
       <div className="container">
-        {error.show && (
-          <div className={`error-notification ${error.show ? "show" : ""}`}>
-            <AlertCircle className="error-notification-icon" size={20} />
-            <span className="error-notification-message">{error.message}</span>
-            <button className="error-notification-close" onClick={() => setError({ ...error, show: false })}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
-
         <div className="header">
-          {selectedLeague ? (
-            <button onClick={() => setSelectedLeague(null)} className="back-button">
-              <ArrowLeft className="text-gray-600" />
-            </button>
-          ) : null}
-          <h1>{selectedLeague ? leagues.find((l) => l.id === selectedLeague)?.name : "Leagues"}</h1>
+          <h1>Футбольные матчи</h1>
         </div>
 
         <div className="content">
-          {!selectedLeague ? (
-            <div className="league-list">
-              {leagues.map((league) => (
-                <button key={league.id} className="league-item" onClick={() => setSelectedLeague(league.id)}>
-                  <div className="info">
-                    <img src={league.logo || "/placeholder.svg"} alt={league.name} className="league-logo" />
-                    <div className="league-text">
-                      <span className="league-name">{league.name}</span>
-                      <span className="league-country">{league.country}</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="text-gray-400" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="match-list">
-              {leagueMatches[selectedLeague]?.map((match, index) => (
-                <div key={index} className="match-item">
-                  <div className="match-header">
-                    <span>{new Date(match.FixtureDetails.Date).toLocaleString()}</span>
-                    <div className="match-actions">
-                      <ShoppingCart size={18} />
-                      <Layout size={18} />
-                    </div>
-                  </div>
+          {loading && <div className="loading">Загрузка матчей...</div>}
+          {error && <div className="error">Ошибка: {error}</div>}
+          {!loading && !error && events.length === 0 && (
+            <div className="empty">Нет доступных матчей</div>
+          )}
 
-                  <div className="teams">
-                    <div className="team team-left">
-                      <img src={match.Teams.Home.Logo} alt={match.Teams.Home.Name} className="team-logo" />
-                      <span className="team-name">{match.Teams.Home.Name}</span>
-                    </div>
-                    <div className="vs">VS</div>
-                    <div className="team team-right">
-                      <span className="team-name">{match.Teams.Away.Name}</span>
-                      <img src={match.Teams.Away.Logo} alt={match.Teams.Away.Name} className="team-logo" />
-                    </div>
-                  </div>
-
-                  <div className="odds">
-                    <button className="odds-button" onClick={handleOddsClick}>
-                      {match.Teams.Home.Name} ({match.Odd.HomeWin})
-                    </button>
-                    <button className="odds-button" onClick={handleOddsClick}>
-                      {match.Teams.Away.Name} ({match.Odd.AwayWin})
-                    </button>
+          <div className="match-list">
+            {events.map((event) => (
+              <div key={event.id} className="match-item">
+                <div className="match-header">
+                  <span>
+                    {new Date(event.start_time).toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                  <div className="match-actions">
+                    <ShoppingCart size={18} />
+                    <Layout size={18} />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+
+                <div className="teams">
+                  <div className="team team-left">
+                    <span className="team-name">
+                      {event.name.split(' vs ')[0]}
+                    </span>
+                  </div>
+                  <div className="vs">VS</div>
+                  <div className="team team-right">
+                    <span className="team-name">
+                      {event.name.split(' vs ')[1]}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="betting-buttons">
+                  <button
+                    className="bet-button"
+                    onClick={() => handleBetClick(event, "home", event.odds.home_win)}
+                  >
+                    П1 ({event.odds.home_win.toFixed(2)})
+                  </button>
+                  <button
+                    className="bet-button"
+                    onClick={() => handleBetClick(event, "draw", event.odds.draw)}
+                  >
+                    Н ({event.odds.draw.toFixed(2)})
+                  </button>
+                  <button
+                    className="bet-button"
+                    onClick={() => handleBetClick(event, "away", event.odds.away_win)}
+                  >
+                    П2 ({event.odds.away_win.toFixed(2)})
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Модальное окно для ставки */}
+        {showBetModal && (
+          <div className="bet-modal">
+            <div className="bet-modal-content">
+              <h3>Сделать ставку</h3>
+              <p>Матч: {selectedBet.event.name}</p>
+              <p>Ставка: {selectedBet.oddSelection === "home" ? "П1" : selectedBet.oddSelection === "away" ? "П2" : "Н"}</p>
+              <p>Коэффициент: {selectedBet.oddValue.toFixed(2)}</p>
+              <input
+                type="number"
+                placeholder="Сумма ставки"
+                value={betAmount}
+                onChange={(e) => setBetAmount(e.target.value)}
+              />
+              <button onClick={handlePlaceBet}>Сделать ставку</button>
+              <button onClick={() => setShowBetModal(false)}>Отмена</button>
+            </div>
+          </div>
+        )}
 
         <div className="fixed bottom-0 left-0 right-0">
           <div className="navbar-container">
             <NavItem
               icon={<Gamepad2 size={20} />}
-              label="Games"
+              label="Матчи"
               active={activeTab === "games"}
               onClick={() => setActiveTab("games")}
               to="/games"
             />
             <NavItem
               icon={<Receipt size={20} />}
-              label="My Bets"
+              label="Ставки"
               active={activeTab === "bets"}
               onClick={() => setActiveTab("bets")}
               to="/bets"
             />
             <NavItem
               icon={<UserCircle size={20} />}
-              label="My Profile"
+              label="Профиль"
               active={activeTab === "profile"}
               onClick={() => setActiveTab("profile")}
               to="/profile"

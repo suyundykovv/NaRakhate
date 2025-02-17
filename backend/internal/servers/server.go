@@ -31,9 +31,9 @@ func NewServer(db *sql.DB) *Server {
 func (s *Server) Start(addr string) {
 	r := mux.NewRouter()
 	logging.Info("Setting up server routes")
+    r.Use(api.CorsMiddleware)
 
 	apis := r.PathPrefix("/api").Subrouter()
-	apis.Use(api.CorsMiddleware)
 	apis.Use(api.JWTAuthMiddleware)
 	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
