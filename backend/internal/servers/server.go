@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -20,6 +21,13 @@ type Server struct {
 	requests   int
 	shutdownCh chan struct{}
 }
+
+var CorsMiddleware = handlers.CORS(
+	handlers.AllowedOrigins([]string{"http://localhost:3000"}),
+	handlers.AllowedMethods([]string{"GET", "POST"}),
+	handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	handlers.AllowCredentials(),
+)
 
 func NewServer(db *sql.DB) *Server {
 	return &Server{
@@ -31,12 +39,12 @@ func NewServer(db *sql.DB) *Server {
 func (s *Server) Start(addr string) {
 	r := mux.NewRouter()
 	logging.Info("Setting up server routes")
-    r.Use(api.CorsMiddleware)
 
+	// Subrouter for API routes with JWT authentication middleware
 	apis := r.PathPrefix("/api").Subrouter()
 	apis.Use(api.JWTAuthMiddleware)
-	apis.HandleFunc("/protected", api.ProtectedHandler).Methods("GET")
 
+	// Define your routes here
 	r.HandleFunc("/getApi", s.FetchFootballMatchesHandler).Methods("GET")
 	r.HandleFunc("/addMatch", s.FetchAndSaveMatchesHandler).Methods("GET")
 	r.HandleFunc("/addLeague", s.FetchLeagueMatchesHandler).Methods("GET")
@@ -60,10 +68,17 @@ func (s *Server) Start(addr string) {
 	r.HandleFunc("/updateEvent", s.UpdateEventHandler).Methods("PUT")
 	r.HandleFunc("/deleteEvent/{id}", s.DeleteEventHandler).Methods("DELETE")
 
+	// Start the background worker
 	go s.startBackgroundWorker()
 
+	// Wrap the router with the CORS middleware
+	handler := CorsMiddleware(r)
+
 	addr = ":" + addr
-	srv := &http.Server{Addr: addr, Handler: r}
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: handler, // Use the CORS-wrapped handler here
+	}
 
 	go func() {
 		logging.Info("Server is starting", "address", addr)
@@ -72,6 +87,7 @@ func (s *Server) Start(addr string) {
 		}
 	}()
 
+	// Graceful shutdown logic
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

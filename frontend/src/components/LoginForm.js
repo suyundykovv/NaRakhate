@@ -1,15 +1,47 @@
-import { useState } from "react"
+import { useState } from "react";
 
 const LoginForm = ({ onLogin }) => {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); // State to hold error messages
+  const [loading, setLoading] = useState(false); // State to manage loading state
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    console.log("Login:", username)
-    console.log("Password:", password)
-    onLogin() // Вызов onLogin после успешной авторизации
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    setLoading(true);
+    setError(""); // Clear previous errors
+
+    const loginData = {
+      email,
+      password,
+    };
+
+    try {
+      const response = await fetch("http://127.0.0.1:8080/log-in", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Invalid credentials");
+      }
+
+      const data = await response.json();
+      const token = data.token;
+
+      // If the login is successful, save the token and call onLogin
+      localStorage.setItem("token", token); // You can store the token in localStorage for further authenticated requests.
+      onLogin(); // Call the onLogin prop function (this can be used to trigger a state update in the parent component)
+    } catch (err) {
+      setError("Login failed: " + err.message + loginData); // Display error message if login fails
+    } finally {
+      setLoading(false); // Stop loading when request is complete
+    }
+  };
 
   return (
     <div style={styles.formContainer}>
@@ -17,14 +49,14 @@ const LoginForm = ({ onLogin }) => {
         <div style={styles.formGroup}>
           <div style={styles.inputWrapper}>
             <i className="user-icon" style={styles.icon}>
-              👤
+              📧
             </i>
             <input
-              type="text"
-              id="username"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              id="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
             />
           </div>
@@ -44,6 +76,7 @@ const LoginForm = ({ onLogin }) => {
             />
           </div>
         </div>
+        {error && <div style={{ color: "red", textAlign: "center" }}>{error}</div>} {/* Show error message */}
         <div style={styles.rememberForgot}>
           <label style={styles.remember}>
             <input type="checkbox" /> Remember me
@@ -52,8 +85,8 @@ const LoginForm = ({ onLogin }) => {
             Forgot password?
           </a>
         </div>
-        <button type="submit" style={styles.button}>
-          Login
+        <button type="submit" style={styles.button} disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
         </button>
         <div style={styles.orLogin}>or login with</div>
         <div style={styles.socialButtons}>
@@ -63,14 +96,14 @@ const LoginForm = ({ onLogin }) => {
         </div>
         <div style={styles.register}>
           Don't have an account yet?{" "}
-          <a href="#C:\Users\Aday\Desktop\auth-page\src\components\RegisterForm.js" style={styles.registerLink}>
+          <a href="/register" style={styles.registerLink}>
             Register
           </a>
         </div>
       </form>
     </div>
-  )
-}
+  );
+};
 
 const styles = {
   formContainer: {
@@ -162,6 +195,6 @@ const styles = {
     color: "#FF4B55",
     textDecoration: "none",
   },
-}
+};
 
-export default LoginForm
+export default LoginForm;
