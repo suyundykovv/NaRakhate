@@ -1,22 +1,21 @@
-package servers
+package dal
 
 import (
 	"Aitu-Bet/internal/models"
-	"Aitu-Bet/utils"
 	"database/sql"
 	"errors"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) createUser(username, email, password, role string) (*models.User, error) {
+func CreateUser(username, email, password, role string, db *sql.DB) (*models.User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
 	var user models.User
-	err = s.db.QueryRow(
+	err = db.QueryRow(
 		"INSERT INTO users (username, email, password, role, cash) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, role, cash",
 		username, email, hashedPassword, role, 1000).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Cash)
 
@@ -26,9 +25,9 @@ func (s *Server) createUser(username, email, password, role string) (*models.Use
 	return &user, nil
 }
 
-func (s *Server) GetUserByEmail(email string) (*models.User, error) {
+func GetUserByEmail(email string, db *sql.DB) (*models.User, error) {
 	var user models.User
-	err := s.db.QueryRow("SELECT id, username, email, password, role, cash FROM users WHERE email = $1", email).Scan(
+	err := db.QueryRow("SELECT id, username, email, password, role, cash FROM users WHERE email = $1", email).Scan(
 		&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.Cash)
 
 	if err == sql.ErrNoRows {
@@ -40,14 +39,14 @@ func (s *Server) GetUserByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (s *Server) verifyPassword(hashedPassword, password string) error {
+func VerifyPassword(hashedPassword, password string, db *sql.DB) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func (s *Server) ReadAllUsers() ([]models.User, error) {
+func ReadAllUsers(db *sql.DB) ([]models.User, error) {
 	var users []models.User
 
-	rows, err := s.db.Query("SELECT id, username, email, role, cash FROM users")
+	rows, err := db.Query("SELECT id, username, email, role, cash FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -64,26 +63,7 @@ func (s *Server) ReadAllUsers() ([]models.User, error) {
 	return users, rows.Err()
 }
 
-func (s *Server) deleteUserData(id string) error {
-	_, err := s.db.Exec(`DELETE FROM users WHERE "id" = $1`, id)
+func DeleteUserData(id string, db *sql.DB) error {
+	_, err := db.Exec(`DELETE FROM users WHERE "id" = $1`, id)
 	return err
-}
-
-func (s *Server) FindUserByToken(tokenString string) (*models.User, error) {
-	// Validate the JWT token
-	claims, err := utils.ValidateJWT(tokenString)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract email from claims
-	email := claims.Email
-
-	// Fetch the user by email
-	user, err := s.GetUserByEmail(email)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
 }

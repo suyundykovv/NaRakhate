@@ -1,10 +1,12 @@
 package servers
 
 import (
+	"Aitu-Bet/internal/dal"
 	"Aitu-Bet/internal/models"
 	"Aitu-Bet/internal/services"
 	"Aitu-Bet/logging"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -47,7 +49,7 @@ func (s *Server) CreateBetHandler(w http.ResponseWriter, r *http.Request) {
 		logging.Error("Failed to save football match data to DB", err)
 	}
 
-	newBet, err := s.createBet(bet)
+	newBet, err := dal.CreateBet(bet, s.db)
 	if err != nil {
 		http.Error(w, "Failed to create bet", http.StatusInternalServerError)
 		return
@@ -58,25 +60,34 @@ func (s *Server) CreateBetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetAllBetsHandler(w http.ResponseWriter, r *http.Request) {
-	bets, err := s.readAllBets()
+	slog.Info("start of popa1")
+
+	bets, err := dal.ReadAllBets(s.db)
 	if err != nil {
 		http.Error(w, "Failed to retrieve bets", http.StatusInternalServerError)
 		return
 	}
+	slog.Info("start of popa1")
+
 	logging.Info("Fetching football matches from Football API Sports...")
 	matches, err := s.fetchFootballMatches()
 	if err != nil {
 		logging.Error("Failed to fetch football match data", err)
 		return
 	}
+	slog.Info("start of popa1")
+
 	err = s.saveFootballMatchesToDB(matches)
 	if err != nil {
 		logging.Error("Failed to save football match data to DB", err)
 	}
+	slog.Info("start of popa1")
+
 	err = services.UpdateAllBetsIfMatchFinished(s.db)
 	if err != nil {
 		logging.Error("Failed to update all bets status match data to DB", err)
 	}
+	slog.Info("start of popa1")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(bets)
 }
@@ -99,7 +110,7 @@ func (s *Server) GetBetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.Error("Failed to save football match data to DB", err)
 	}
-	bet, err := s.readBetByID(id)
+	bet, err := dal.ReadBetByID(id, s.db)
 	if err != nil {
 		http.Error(w, "Bet not found", http.StatusNotFound)
 		return
@@ -116,7 +127,7 @@ func (s *Server) UpdateBetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.updateBet(bet); err != nil {
+	if err := dal.UpdateBet(bet, s.db); err != nil {
 		http.Error(w, "Failed to update bet", http.StatusInternalServerError)
 		return
 	}
@@ -133,7 +144,7 @@ func (s *Server) DeleteBetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.deleteBetData(id); err != nil {
+	if err := dal.DeleteBetData(id, s.db); err != nil {
 		http.Error(w, "Failed to delete bet", http.StatusInternalServerError)
 		return
 	}

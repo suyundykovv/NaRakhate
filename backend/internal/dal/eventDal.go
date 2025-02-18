@@ -1,4 +1,4 @@
-package servers
+package dal
 
 import (
 	"Aitu-Bet/internal/models"
@@ -6,8 +6,8 @@ import (
 	"errors"
 )
 
-func (s *Server) createEvent(event models.Event) (*models.Event, error) {
-	err := s.db.QueryRow(
+func CreateEvent(event models.Event, db *sql.DB) (*models.Event, error) {
+	err := db.QueryRow(
 		"INSERT INTO events (name, description, start_time, category) VALUES ($1, $2, $3, $4) RETURNING id",
 		event.Name, event.Description, event.StartTime, event.Category).Scan(&event.ID)
 	if err != nil {
@@ -16,10 +16,10 @@ func (s *Server) createEvent(event models.Event) (*models.Event, error) {
 	return &event, nil
 }
 
-func (s *Server) readAllEvents() ([]models.Event, error) {
+func ReadAllEvents(db *sql.DB) ([]models.Event, error) {
 	var events []models.Event
 
-	rows, err := s.db.Query(`
+	rows, err := db.Query(`
         SELECT id, name, description, start_time, category, home_win_odds, away_win_odds, draw_odds, match_status
         FROM events
     `)
@@ -58,10 +58,10 @@ func (s *Server) readAllEvents() ([]models.Event, error) {
 	return events, rows.Err()
 }
 
-func (s *Server) readEventByID(id int) (*models.Event, error) {
+func ReadEventByID(id int, db *sql.DB) (*models.Event, error) {
 	var event models.Event
 
-	err := s.db.QueryRow(
+	err := db.QueryRow(
 		"SELECT id, name, description, start_time, category, match_status, home_goals, away_goals FROM events WHERE id = $1", id).
 		Scan(
 			&event.ID,
@@ -83,22 +83,22 @@ func (s *Server) readEventByID(id int) (*models.Event, error) {
 	return &event, nil
 }
 
-func (s *Server) updateEvent(event models.Event) error {
-	_, err := s.db.Exec(
+func UpdateEvent(event models.Event, db *sql.DB) error {
+	_, err := db.Exec(
 		"UPDATE events SET name = $1, description = $2, start_time = $3, category = $4 WHERE id = $5",
 		event.Name, event.Description, event.StartTime, event.Category, event.ID)
 	return err
 }
 
-func (s *Server) deleteEventData(id int) error {
-	_, err := s.db.Exec("DELETE FROM events WHERE id = $1", id)
+func DeleteEventData(id int, db *sql.DB) error {
+	_, err := db.Exec("DELETE FROM events WHERE id = $1", id)
 	return err
 }
 
-func (s *Server) readAllFixtures() ([]models.Fixture, error) {
+func ReadAllFixtures(db *sql.DB) ([]models.Fixture, error) {
 	var fixtures []models.Fixture
 
-	rows, err := s.db.Query(`
+	rows, err := db.Query(`
 		SELECT id, home_team_id, away_team_id, home_goals, away_goals, match_date, league_id, referee, venue_name, venue_city
 		FROM matches
 	`)

@@ -1,4 +1,4 @@
-package servers
+package dal
 
 import (
 	"Aitu-Bet/internal/models"
@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-func (s *Server) createBet(bet models.Bet) (*models.Bet, error) {
+func CreateBet(bet models.Bet, db *sql.DB) (*models.Bet, error) {
 	log.Println("Starting createBet function")
 
 	// Step 1: Deduct bet amount from user
 	log.Printf("Deducting bet amount %f from user %d", bet.Amount, bet.UserID)
-	if err := services.DeductBetAmountFromUser(bet, s.db); err != nil {
+	if err := services.DeductBetAmountFromUser(bet, db); err != nil {
 		log.Printf("Failed to deduct bet amount from user %d: %v", bet.UserID, err)
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (s *Server) createBet(bet models.Bet) (*models.Bet, error) {
 
 	// Step 3: Calculate potential winnings
 	log.Printf("Calculating potential winnings for event %d, selection %s, amount %f", bet.EventID, bet.OddSelection, bet.Amount)
-	income, betValue, err := services.GetPotentialWinValue(bet.EventID, bet.OddSelection, bet.Amount, s.db)
+	income, betValue, err := services.GetPotentialWinValue(bet.EventID, bet.OddSelection, bet.Amount, db)
 	if err != nil {
 		log.Printf("Failed to calculate potential winnings: %v", err)
 		return nil, fmt.Errorf("failed to get potential win value: %w", err)
@@ -51,7 +51,7 @@ func (s *Server) createBet(bet models.Bet) (*models.Bet, error) {
 	`
 	log.Printf("Inserting bet into database: user_id=%d, event_id=%d, amount=%f, odd_value=%f, income=%f, status=%s, created_at=%v",
 		bet.UserID, bet.EventID, bet.Amount, bet.OddValue, bet.Income, bet.Status, bet.CreatedAt)
-	err = s.db.QueryRow(query,
+	err = db.QueryRow(query,
 		bet.UserID,
 		bet.EventID,
 		bet.Amount,
@@ -71,10 +71,10 @@ func (s *Server) createBet(bet models.Bet) (*models.Bet, error) {
 	return &bet, nil
 }
 
-func (s *Server) readAllBets() ([]models.Bet, error) {
+func ReadAllBets(db *sql.DB) ([]models.Bet, error) {
 	var bets []models.Bet
 
-	rows, err := s.db.Query("SELECT id, user_id, event_id, amount, income, status, created_at FROM bets")
+	rows, err := db.Query("SELECT id, user_id, event_id, amount, income, status, created_at FROM bets")
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +91,14 @@ func (s *Server) readAllBets() ([]models.Bet, error) {
 	return bets, rows.Err()
 }
 
-func (s *Server) readBetByID(id int) (*models.Bet, error) {
+func ReadBetByID(id int, db *sql.DB) (*models.Bet, error) {
 	query := `
 		SELECT id, user_id, event_id, odd_selection, odd_value, amount, income, status, created_at 
 		FROM bets 
 		WHERE id = $1
 	`
 	var bet models.Bet
-	err := s.db.QueryRow(query, id).Scan(
+	err := db.QueryRow(query, id).Scan(
 		&bet.ID,
 		&bet.UserID,
 		&bet.EventID,
@@ -118,13 +118,13 @@ func (s *Server) readBetByID(id int) (*models.Bet, error) {
 	return &bet, nil
 }
 
-func (s *Server) updateBet(bet models.Bet) error {
+func UpdateBet(bet models.Bet, db *sql.DB) error {
 	query := `
 		UPDATE bets 
 		SET user_id = $1, event_id = $2, odd_selection = $3, odd_value = $4, amount = $5, income = $6, status = $7, created_at = $8 
 		WHERE id = $9
 	`
-	_, err := s.db.Exec(query,
+	_, err := db.Exec(query,
 		bet.UserID,
 		bet.EventID,
 		bet.OddSelection,
@@ -141,9 +141,9 @@ func (s *Server) updateBet(bet models.Bet) error {
 	return nil
 }
 
-func (s *Server) deleteBetData(id int) error {
+func DeleteBetData(id int, db *sql.DB) error {
 	query := `DELETE FROM bets WHERE id = $1`
-	_, err := s.db.Exec(query, id)
+	_, err := db.Exec(query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete bet with id %d: %w", id, err)
 	}

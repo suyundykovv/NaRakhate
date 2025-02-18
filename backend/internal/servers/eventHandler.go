@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"Aitu-Bet/internal/dal"
 	"Aitu-Bet/internal/models"
 	"encoding/json"
 	"log"
@@ -15,7 +16,7 @@ func (s *Server) GetEventHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	eventID := vars["eventId"]
 	events, _ := strconv.Atoi(eventID)
-	event, err := s.readEventByID(events)
+	event, err := dal.ReadEventByID(events, s.db)
 	if err != nil {
 		http.Error(w, "Failed to fetch event", http.StatusInternalServerError)
 		return
@@ -32,7 +33,7 @@ func (s *Server) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newEvent, err := s.createEvent(event)
+	newEvent, err := dal.CreateEvent(event, s.db)
 	if err != nil {
 		http.Error(w, "Failed to create event", http.StatusInternalServerError)
 		return
@@ -43,7 +44,7 @@ func (s *Server) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := s.readAllEvents()
+	events, err := dal.ReadAllEvents(s.db)
 	if err != nil {
 		http.Error(w, "Failed to retrieve events", http.StatusInternalServerError)
 		return
@@ -61,7 +62,7 @@ func (s *Server) GetEventByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := s.readEventByID(id)
+	event, err := dal.ReadEventByID(id, s.db)
 	if err != nil {
 		http.Error(w, "Event not found", http.StatusNotFound)
 		return
@@ -78,7 +79,7 @@ func (s *Server) UpdateEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.updateEvent(event); err != nil {
+	if err := dal.UpdateEvent(event, s.db); err != nil {
 		http.Error(w, "Failed to update event", http.StatusInternalServerError)
 		return
 	}
@@ -95,14 +96,14 @@ func (s *Server) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.deleteEventData(id); err != nil {
+	if err := dal.DeleteEventData(id, s.db); err != nil {
 		http.Error(w, "Failed to delete event", http.StatusInternalServerError)
 		return
 	}
 }
 
 func (s *Server) GetAllMatchesHandler(w http.ResponseWriter, r *http.Request) {
-	fixtures, err := s.readAllFixtures()
+	fixtures, err := dal.ReadAllFixtures(s.db)
 	if err != nil {
 		log.Printf("Error reading fixtures: %v", err)
 		http.Error(w, "Failed to retrieve fixtures", http.StatusInternalServerError)

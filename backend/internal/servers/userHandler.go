@@ -1,6 +1,8 @@
 package servers
 
 import (
+	"Aitu-Bet/internal/dal"
+	"Aitu-Bet/internal/models"
 	"Aitu-Bet/utils"
 	"encoding/json"
 	"net/http"
@@ -22,7 +24,7 @@ func (s *Server) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.createUser(request.Username, request.Email, request.Password, request.Role)
+	user, err := dal.CreateUser(request.Username, request.Email, request.Password, request.Role, s.db)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -73,13 +75,13 @@ func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.GetUserByEmail(request.Email)
+	user, err := dal.GetUserByEmail(request.Email, s.db)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	if err := s.verifyPassword(user.Password, request.Password); err != nil {
+	if err := dal.VerifyPassword(user.Password, request.Password, s.db); err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -95,7 +97,7 @@ func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getAllUsersHandler(w http.ResponseWriter, r *http.Request) {
-	users, err := s.ReadAllUsers()
+	users, err := dal.ReadAllUsers(s.db)
 	if err != nil {
 		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
 		return
@@ -107,7 +109,7 @@ func (s *Server) getAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/deleteUser/")
-	err := s.deleteUserData(key)
+	err := dal.DeleteUserData(key, s.db)
 	if err != nil {
 		http.Error(w, "Failed to delete users", http.StatusInternalServerError)
 		return
@@ -131,4 +133,23 @@ func (s *Server) UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
+}
+
+func (s *Server) FindUserByToken(tokenString string) (*models.User, error) {
+	// Validate the JWT token
+	claims, err := utils.ValidateJWT(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract email from claims
+	email := claims.Email
+
+	// Fetch the user by email
+	user, err := dal.GetUserByEmail(email, s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
