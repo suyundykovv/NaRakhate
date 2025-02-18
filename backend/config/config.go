@@ -13,7 +13,7 @@ var (
 const (
 	ApiBaseURL = "https://v3.football.api-sports.io/fixtures"
 	// Your API key for the API Sports service
-	ApiKey = "46c04cea462369452762c19a3a2f89cc"
+	ApiKey = "3d09bb9f390f3766a0a694f6dc764296"
 )
 
 func PrintUsage() {
