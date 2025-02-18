@@ -12,6 +12,7 @@ ENV POSTGRES_PASSWORD=adminpassword
 COPY . .
 
 # Build the Go application
+
 RUN go build -o ./main .
 
 # Use a smaller, production-ready image to run the app

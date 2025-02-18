@@ -1,21 +1,24 @@
-import { useState } from "react";
+"use client"
+
+import { useState } from "react"
+import { Link } from "react-router-dom"
 
 const LoginForm = ({ onLogin }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(""); // State to hold error messages
-  const [loading, setLoading] = useState(false); // State to manage loading state
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("") // State to hold error messages
+  const [loading, setLoading] = useState(false) // State to manage loading state
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
-    setLoading(true);
-    setError(""); // Clear previous errors
+    setLoading(true)
+    setError("") // Clear previous errors
 
     const loginData = {
       email,
       password,
-    };
+    }
 
     try {
       const response = await fetch("http://127.0.0.1:8080/log-in", {
@@ -24,24 +27,24 @@ const LoginForm = ({ onLogin }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(loginData),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Invalid credentials");
+        throw new Error("Invalid credentials")
       }
 
-      const data = await response.json();
-      const token = data.token;
+      const data = await response.json()
+      const token = data.token
 
       // If the login is successful, save the token and call onLogin
-      localStorage.setItem("token", token); // You can store the token in localStorage for further authenticated requests.
-      onLogin(); // Call the onLogin prop function (this can be used to trigger a state update in the parent component)
+      localStorage.setItem("token", token) // You can store the token in localStorage for further authenticated requests.
+      onLogin() // Call the onLogin prop function (this can be used to trigger a state update in the parent component)
     } catch (err) {
-      setError("Login failed: " + err.message + loginData); // Display error message if login fails
+      setError("Login failed: " + err.message + loginData) // Display error message if login fails
     } finally {
-      setLoading(false); // Stop loading when request is complete
+      setLoading(false) // Stop loading when request is complete
     }
-  };
+  }
 
   return (
     <div style={styles.formContainer}>
@@ -77,33 +80,21 @@ const LoginForm = ({ onLogin }) => {
           </div>
         </div>
         {error && <div style={{ color: "red", textAlign: "center" }}>{error}</div>} {/* Show error message */}
-        <div style={styles.rememberForgot}>
-          <label style={styles.remember}>
-            <input type="checkbox" /> Remember me
-          </label>
-          <a href="#" style={styles.forgot}>
-            Forgot password?
-          </a>
-        </div>
+
         <button type="submit" style={styles.button} disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </button>
-        <div style={styles.orLogin}>or login with</div>
-        <div style={styles.socialButtons}>
-          <button style={styles.socialButton}>G</button>
-          <button style={styles.socialButton}>f</button>
-          <button style={styles.socialButton}>🍎</button>
-        </div>
+
         <div style={styles.register}>
           Don't have an account yet?{" "}
-          <a href="/register" style={styles.registerLink}>
+          <Link to="/register" style={styles.registerLink}>
             Register
-          </a>
+          </Link>
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
 
 const styles = {
   formContainer: {
@@ -195,6 +186,7 @@ const styles = {
     color: "#FF4B55",
     textDecoration: "none",
   },
-};
+}
 
-export default LoginForm;
+export default LoginForm
+

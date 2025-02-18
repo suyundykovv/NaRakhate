@@ -1,26 +1,26 @@
-import { useState } from "react"
+"use client"
+import { Link, Route, Routes } from "react-router-dom"
 import LoginForm from "./LoginForm"
 import RegisterForm from "./RegisterForm"
 
 const AuthTabs = ({ onLogin }) => {
-  const [activeTab, setActiveTab] = useState("login")
+  //const [activeTab, setActiveTab] = useState("login")
 
   return (
     <div style={styles.container}>
       <div style={styles.tabs}>
-        <button style={activeTab === "login" ? styles.activeTab : styles.tab} onClick={() => setActiveTab("login")}>
+        <Link to="/login" style={styles.tab}>
           Вход
-        </button>
-        <button
-          style={activeTab === "register" ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab("register")}
-        >
+        </Link>
+        <Link to="/register" style={styles.tab}>
           Регистрация
-        </button>
+        </Link>
       </div>
 
-      {activeTab === "login" && <LoginForm onLogin={onLogin} />}
-      {activeTab === "register" && <RegisterForm />}
+      <Routes>
+        <Route path="/login" element={<LoginForm onLogin={onLogin} />} />
+        <Route path="/register" element={<RegisterForm />} />
+      </Routes>
     </div>
   )
 }
@@ -46,9 +46,7 @@ const styles = {
   },
   tab: {
     padding: "8px 0",
-    border: "none",
-    background: "none",
-    cursor: "pointer",
+    textDecoration: "none",
     fontSize: "16px",
     color: "#666",
     position: "relative",
@@ -74,3 +72,4 @@ const styles = {
 }
 
 export default AuthTabs
+
