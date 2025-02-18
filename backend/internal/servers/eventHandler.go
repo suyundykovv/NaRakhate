@@ -7,7 +7,23 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
+
+func (s *Server) GetEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	eventID := vars["eventId"]
+	events, _ := strconv.Atoi(eventID)
+	event, err := s.readEventByID(events)
+	if err != nil {
+		http.Error(w, "Failed to fetch event", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(event)
+}
 
 func (s *Server) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 	var event models.Event

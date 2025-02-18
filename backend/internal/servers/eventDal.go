@@ -62,8 +62,17 @@ func (s *Server) readEventByID(id int) (*models.Event, error) {
 	var event models.Event
 
 	err := s.db.QueryRow(
-		"SELECT id, name, description, start_time, category FROM events WHERE id = $1", id).
-		Scan(&event.ID, &event.Name, &event.Description, &event.StartTime, &event.Category)
+		"SELECT id, name, description, start_time, category, match_status, home_goals, away_goals FROM events WHERE id = $1", id).
+		Scan(
+			&event.ID,
+			&event.Name,
+			&event.Description,
+			&event.StartTime,
+			&event.Category,
+			&event.Status,
+			&event.Home_goals,
+			&event.Away_goals,
+		)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("event not found")

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import AuthTabs from "./components/AuthTabs";
 import Games from "./pages/Games";
 import Bets from "./pages/Bets";
@@ -9,9 +9,9 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
 
-  // Check localStorage for authentication status on initial load
   useEffect(() => {
     const savedAuthStatus = localStorage.getItem("isAuthenticated");
+    // Make sure user is logged out on page load
     if (savedAuthStatus === "true") {
       setIsAuthenticated(true);
     }
@@ -19,14 +19,14 @@ function App() {
 
   const handleLogin = () => {
     setIsAuthenticated(true);
-    localStorage.setItem("isAuthenticated", "true"); // Save authentication status to localStorage
-    navigate("/profile"); // Redirect to profile after login
+    localStorage.setItem("isAuthenticated", "true");
+    navigate("/profile");
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem("isAuthenticated"); // Clear authentication status from localStorage
-    navigate("/login"); // Redirect to login after logout
+    localStorage.removeItem("isAuthenticated");
+    navigate("/login");
   };
 
   return (
@@ -36,9 +36,11 @@ function App() {
           <AuthTabs onLogin={handleLogin} />
         ) : (
           <Routes>
-            <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
+            <Route path="/login" element={<Profile onLogout={handleLogout} />} />
             <Route path="/games" element={<Games />} />
             <Route path="/bets" element={<Bets />} />
+            {/* Redirect to login page if not authenticated */}
+            <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         )}
       </div>
@@ -46,7 +48,6 @@ function App() {
   );
 }
 
-// Wrap App with Router
 export default function AppWrapper() {
   return (
     <Router>

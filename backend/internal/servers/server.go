@@ -65,17 +65,17 @@ func (s *Server) Start(addr string) {
 
 	r.HandleFunc("/createEvent", s.CreateEventHandler).Methods("POST")
 	r.HandleFunc("/getEvents", s.GetAllEventsHandler).Methods("GET")
-	r.HandleFunc("/getEvent/{id}", s.GetEventByIDHandler).Methods("GET")
+	r.HandleFunc("/getEvent/{eventId}", s.GetEventHandler).Methods("GET")
 	r.HandleFunc("/updateEvent", s.UpdateEventHandler).Methods("PUT")
 	r.HandleFunc("/deleteEvent/{id}", s.DeleteEventHandler).Methods("DELETE")
 
 	// Start the background worker
 	go s.startBackgroundWorker()
-
 	// Wrap the router with the CORS middleware
 	handler := CorsMiddleware(r)
 
 	addr = ":" + addr
+
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: handler, // Use the CORS-wrapped handler here
